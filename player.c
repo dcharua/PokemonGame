@@ -1,36 +1,14 @@
-//
-//  Pokemon.c
-//  FinalProyect
-//  17/04/15
-//  Copyright (c) 2015. All rights reserved.
-//
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-#include <unistd.h>
-// Signals library
-#include <errno.h>
-#include <signal.h>
-#include <poll.h>
 // Sockets libraries
 #include <netdb.h>
-#include <sys/poll.h>
-// Posix threads library
-#include <pthread.h>
-
+#include <arpa/inet.h>
 // Custom libraries
 #include "sockets.h"
-#include "fatal_error.h"
 
-#define MAX_PLAYERS 2
 #define BUFFER_SIZE 1024
-#define MAX_QUEUE 5
-
-///// Structure definitions
-int interrupted = 0;
-int session_transations = 0;
 
 typedef struct pokemon{
   char name[10];
@@ -39,21 +17,12 @@ typedef struct pokemon{
   float attack1;
   float attack2;
   int attack_percent;
-} pokemon_t;
+}pokemon;
 
-typedef struct player{
-  char name[10];
-  pokemon_t * pokemon
-} player_t;
-
-// Data that will be sent to each structure
-typedef struct data_struct {
-  // The file descriptor for the socket
-  int connection_fd;
-  // A pointer to a players data
-  player_t * players_data;
-} thread_data_t;
-
+void potions(pokemon* pikachu, char* name, int* potion1, int* potion2, int* potion3);
+void introduction(char* name);
+int read_file(char* filename, pokemon* pokemon);
+int read_items(char* filename, char* name, int potions[3], int stages[4]);
 void genders();
 void male();
 void female();
@@ -66,78 +35,8 @@ void charizard(float hp, float hpFull, char* name);
 void zapdos(float hp, float hpFull, char* name);
 void mew(float hp, float hpFull, char* name);
 void youwon();
-//
-void usage(char * program);
-void setupHandlers();
-void initGame(bank_t * bank_data, locks_t * data_locks);
-void waitForConnections(int server_fd, bank_t * bank_data, locks_t * data_locks);
-void * attentionThread(void * arg);
-void closeGame(bank_t * bank_data, locks_t * data_locks);
-void catchInterrupt(int signal);
-
-///// MAIN FUNCTION
-int main(int argc, char * argv[]){
-  int server_fd;
-  player_t players_data;
-  //locks_t data_locks;
-
-  printf("\n=== Pokemon Coliseum Server ===\n");
-
-  // Check the correct arguments
-  if (argc != 2)
-    usage(argv[0]);
-
-  // Configure the handler to catch SIGINT
-  setupHandlers();
-
-  // Initialize the data structures
-  initGame(&players_data);
-
-  // Show the IPs assigned to this computer
-  printLocalIPs();
-  // Start the server
-  server_fd = initServer(argv[1], MAX_QUEUE);
-// Listen for connections from the clients
-  waitForConnections(server_fd, &players_data, &data_locks);
-  // Close the socket
-  close(server_fd);
-
-  // Clean the memory used
-  closeGame(&bank_data, &data_locks);
-
-  // Finish the main thread
-  pthread_exit(NULL);
-
-  return 0;
-}
-
-///// FUNCTION DEFINITIONS
-
-/*
-    Explanation to the user of the parameters required to run the program
-*/
-void usage(char * program){
-  printf("Usage:\n");
-  printf("\t%s {port_number}\n", program);
-  exit(EXIT_FAILURE);
-}
-
-void setupHandlers(){
-  struct sigaction new_action;
-
-  new_action.sa_handler = catchInterrupt;
-  sigfillset(&new_action.sa_mask);
-
-  //Define the signal to handle
-  sigaction(SIGINT, &new_action, NULL);
-}
-
-//Function to act on CNTL C and send exit message to server
-void catchInterrupt(int signal){
-  //A sessions_transitions is used and not the bank data struct transitions in case program is modified to read data from file
-  printf("Exit signal recived, total succesfull transations in this server session %d\n", session_transations);
-  interrupted = 1;
-}
+void loop_Mainmenu(char* name, pokemon pikachu, int numPotions[3], int stage[4]);
+void playOnline(char* name, pokemon * pikachu);
 
 int main(int argC, char *argV[]){
   pokemon pikachu;
@@ -158,6 +57,7 @@ int main(int argC, char *argV[]){
     read_items(fItems, name, usedPotions, usedstage);
     loop_Mainmenu(name, pikachu, usedPotions, usedstage);
   }
+
   else if (savedProgress == 'n') {
     read_file(fpikachu, &pikachu);
     introduction(name);
@@ -166,6 +66,7 @@ int main(int argC, char *argV[]){
 
   return 0;
 }
+
 
 int read_file(char* filename, pokemon* pokemon){
   FILE* filePtr;
@@ -208,8 +109,8 @@ int read_items(char* filename, char* name, int potions[3], int stages[4]){
 	return 0;
 }
 
-int write_file(char* filename, char* name, int potions[3], int stages[4])
-{
+
+int write_file(char* filename, char* name, int potions[3], int stages[4]){
 	FILE* filePtr;
 	int i;
 	filePtr = fopen(filename, "w");
@@ -248,56 +149,7 @@ int write_pokemon(char* filename, pokemon pokemon){
 	return 0;
 }
 
-void potions(pokemon* pikachu, char* name, int* potion1, int* potion2, int* potion3){
-  int potion = 1;
-  while (potion != 0){
-    potionsPictures(*potion1, *potion2, *potion3);
-    printf("Go out : 0\n\tWhat potion do you want %s? : ", name);
-    scanf("%d", &potion);
 
-    switch (potion) {
-      case 1:
-        if(*potion1 > 0) {
-          printf("\nThis is your HP before using the potion: %.0f", pikachu->HP);
-          pikachu->HP += 30;
-          *potion1 -= 1;
-          printf("\nThis is your HP after using the potion: %.0f\n", pikachu->HP);
-        } else {
-          printf("\nYou don't have any potions left\n\n");
-        }
-        break;
-
-      case 2:
-        if(*potion2 > 0) {
-          printf("\nThis is your MP before using the potion: %d", pikachu->MP);
-          pikachu->MP += 5;
-          *potion2 -= 1;
-          printf("\nThis is your MP after using the potion: %d\n", pikachu->MP);
-        } else {
-          printf("\nYou don't have any potions left\n\n");
-        }
-        break;
-
-      case 3:
-        if(*potion3 > 0) {
-          printf("\nThis is your Attack%% before using the potion: %d%% ", pikachu->attack_percent);
-          pikachu->attack_percent += 5;
-          *potion3 -= 1;
-          printf("\nThis is your Attack%% after using the potion: %d%%\n", pikachu->attack_percent);
-        } else {
-          printf("\nYou don't have any potions left\n\n");
-        }
-        break;
-
-      case 0:
-        break;
-
-      default:
-        printf("Invalid option, please try again.\n");
-        break;
-    }
-  }
-}
 
 void printStatus(pokemon pokemon){
   printf("\n\t\t%s stats:\n", pokemon.name);
@@ -392,10 +244,15 @@ int fight(char* name, pokemon pikachu, pokemon opponent, int stage, int* potion1
   scanf("%d", &fchoice);
 
   while (fchoice != 0) {
-    if (stage == 1) gengar(opponent.HP, hpFull, opponent.name);
-		else if (stage == 2) charizard(opponent.HP, hpFull, opponent.name);
-		else if (stage == 3) zapdos(opponent.HP, hpFull, opponent.name);
-		else if (stage == 4) mew(opponent.HP, hpFull, opponent.name);
+    if (stage == 1)
+      gengar(opponent.HP, hpFull, opponent.name);
+		else if (stage == 2)
+      charizard(opponent.HP, hpFull, opponent.name);
+		else if (stage == 3)
+      zapdos(opponent.HP, hpFull, opponent.name);
+		else if (stage == 4)
+      mew(opponent.HP, hpFull, opponent.name);
+
 		pikachuBack(pikachu.HP, PikachuHPFull, pikachu.name);
 		srand(time(NULL));
 		scanf("%d", &fchoice);
@@ -512,7 +369,8 @@ void loop_Mainmenu(char* name,  pokemon pikachu, int numPotions[3], int stage[4]
     printf("\t1. Go to the Map and main story\n");
     printf("\t2. Check whats your backpack\n");
     printf("\t3. Check your pokemon stats\n");
-    printf("\t4. Save game\n");
+    printf("\t4. Play Online\n");
+    printf("\t5. Save game\n");
     printf("\t0. Quit the game\n\n");
     printf("Select a option : ");
     scanf("%d", &option);
@@ -531,6 +389,10 @@ void loop_Mainmenu(char* name,  pokemon pikachu, int numPotions[3], int stage[4]
         break;
 
       case 4:
+  			playOnline(name, &pikachu);
+        break;
+
+      case 5:
   			write_file(fitems, name, numPotions, stage);
   			write_pokemon(fpikachu, pikachu);
   			printf("\n\nCongratulations. You already saved the game\n\n");
@@ -545,6 +407,33 @@ void loop_Mainmenu(char* name,  pokemon pikachu, int numPotions[3], int stage[4]
       default:
         break;
     }
+  }
+}
+
+void playOnline(char* name, pokemon * pikachu){
+  char address[20];
+  char port[4];
+  char buffer[BUFFER_SIZE];
+  int connection_fd = 0;
+  printf("Enter the server address (127.0.0.1)\n");
+  fflush(stdin);
+  scanf("%s", address);
+  printf("Enter the port (8989)\n");
+  scanf("%s", port);
+  printf("%s %s\n", address, port);
+  // Start the server
+  connection_fd = connectSocket("127.0.0.1", "8989");
+  printf("%d\n", connection_fd);
+  if (connection_fd ){
+    // Prepare the message to the server
+    sprintf(buffer, "%s %s %f %d %f %f %d", name, pikachu->name, pikachu->HP, pikachu->MP, pikachu->attack1, pikachu->attack2, pikachu->attack_percent);
+  }
+  sendString(connection_fd, buffer);
+  // RECV
+  // Receive the response
+  if ( !recvString(connection_fd, buffer, BUFFER_SIZE) ){
+    printf("Server closed the connection\n");
+    exit(1);
   }
 }
 
@@ -571,6 +460,57 @@ void GenderName(char* name){
         default:
           printf("Invalid option. Try again\n");
           break;
+    }
+  }
+}
+
+void potions(pokemon* pikachu, char* name, int* potion1, int* potion2, int* potion3){
+  int potion = 1;
+  while (potion != 0){
+    potionsPictures(*potion1, *potion2, *potion3);
+    printf("Go out : 0\n\tWhat potion do you want %s? : ", name);
+    scanf("%d", &potion);
+
+    switch (potion) {
+      case 1:
+        if(*potion1 > 0) {
+          printf("\nThis is your HP before using the potion: %.0f", pikachu->HP);
+          pikachu->HP += 30;
+          *potion1 -= 1;
+          printf("\nThis is your HP after using the potion: %.0f\n", pikachu->HP);
+        } else {
+          printf("\nYou don't have any potions left\n\n");
+        }
+        break;
+
+      case 2:
+        if(*potion2 > 0) {
+          printf("\nThis is your MP before using the potion: %d", pikachu->MP);
+          pikachu->MP += 5;
+          *potion2 -= 1;
+          printf("\nThis is your MP after using the potion: %d\n", pikachu->MP);
+        } else {
+          printf("\nYou don't have any potions left\n\n");
+        }
+        break;
+
+      case 3:
+        if(*potion3 > 0) {
+          printf("\nThis is your Attack%% before using the potion: %d%% ", pikachu->attack_percent);
+          pikachu->attack_percent += 5;
+          *potion3 -= 1;
+          printf("\nThis is your Attack%% after using the potion: %d%%\n", pikachu->attack_percent);
+        } else {
+          printf("\nYou don't have any potions left\n\n");
+        }
+        break;
+
+      case 0:
+        break;
+
+      default:
+        printf("Invalid option, please try again.\n");
+        break;
     }
   }
 }
