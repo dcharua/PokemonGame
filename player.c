@@ -37,6 +37,7 @@ void mew(float hp, float hpFull, char* name);
 void youwon();
 void loop_Mainmenu(char* name, pokemon pikachu, int numPotions[3], int stage[4]);
 void playOnline(char* name, pokemon * pikachu);
+void battleOnline(char * name, pokemon * pikachu, int connection_fd);
 
 int main(int argC, char *argV[]){
   pokemon pikachu;
@@ -235,7 +236,6 @@ void attack(pokemon* pikachu, pokemon* opponent, float attack){
   }
 }
 
-
 int fight(char* name, pokemon pikachu, pokemon opponent, int stage, int* potion1,int* potion2,int* potion3){
 	int fchoice;
 	float hpFull = opponent.HP, PikachuHPFull = pikachu.HP;
@@ -390,6 +390,7 @@ void loop_Mainmenu(char* name,  pokemon pikachu, int numPotions[3], int stage[4]
 
       case 4:
   			playOnline(name, &pikachu);
+        option = 0;
         break;
 
       case 5:
@@ -417,6 +418,7 @@ void playOnline(char* name, pokemon * pikachu){
   int connection_fd = 0;
   printf("Enter the server address (127.0.0.1)\n");
   fflush(stdin);
+  fflush(stdout);
   scanf("%s", address);
   printf("Enter the port (8989)\n");
   scanf("%s", port);
@@ -431,10 +433,41 @@ void playOnline(char* name, pokemon * pikachu){
   sendString(connection_fd, buffer);
   // RECV
   // Receive the response
-  if ( !recvString(connection_fd, buffer, BUFFER_SIZE) ){
+  if (!recvString(connection_fd, buffer, BUFFER_SIZE) ){
     printf("Server closed the connection\n");
     exit(1);
   }
+
+  if(strncmp(buffer, "WAIT", 4) == 0)
+    printf("Waiting for another player\n");
+  while ( strncmp(buffer, "PLAY", 4) != 0){
+    if (!recvString(connection_fd, buffer, BUFFER_SIZE) ){
+       printf("Server closed the connection\n");
+       exit(1);
+    }
+  }
+  battleOnline(name, pikachu, connection_fd);
+}
+
+void battleOnline(char * name, pokemon * pikachu, int connection_fd){
+  char buffer[BUFFER_SIZE];
+  printf("===== WELCOME TO THE COLISEUM =====\n");
+  sprintf(buffer, "READY");
+  sendString(connection_fd, buffer);
+  while(strncmp(buffer, "END", 3) != 0){
+    if (!recvString(connection_fd, buffer, BUFFER_SIZE) ){
+       printf("Server closed the connection\n");
+       exit(1);
+     }
+     if(strncmp(buffer, "TURN", 4) == 0)
+       battleAction(name, pikachu, connection_fd);
+     if(strncmp(buffer, "WAIT", 4) == 0)
+       battleRecive(char * name, pokemon * pikachu, int connection_fd);
+ }
+}
+
+battleAction(char * name, pokemon * pikachu, int connection_fd){
+
 }
 
 void GenderName(char* name){

@@ -42,6 +42,9 @@ typedef struct pokemon{
 
 typedef struct player{
   char name[10];
+  int online;
+  int ready;
+  int turn;
   pokemon_t * pokemon;
 } player_t;
 
@@ -56,6 +59,8 @@ typedef struct locks_struct {
 typedef struct data_struct {
   // The file descriptor for the socket
   int connection_fd;
+  // The file descriptor for the socket
+  int player_id;
   // A pointer to a players data
   player_t * player1;
   player_t * player2;
@@ -70,6 +75,7 @@ void initGame(player_t * player1, player_t * player2, locks_t * data_locks);
 void waitForConnections(int server_fd, player_t * player1, player_t * player2, locks_t * data_locks);
 void * attentionThread(void * arg);
 void getPlayerData(thread_data_t * connection_data);
+void battle(thread_data_t * connection_data);
 void closeGame(player_t * player1, player_t * player2, locks_t * data_locks);
 void catchInterrupt(int signal);
 
@@ -144,7 +150,8 @@ void initGame(player_t * player1, player_t * player2, locks_t * data_locks){
   // Allocate the arrays in the structures
   player1->pokemon = malloc(sizeof (pokemon_t));
   player2->pokemon = malloc(sizeof (pokemon_t));
-
+  player1->online = 0;
+  player2->online = 0;
   // Allocate the arrays for the mutexes
   data_locks->players_mutex = malloc(MAX_PLAYERS * sizeof (pthread_mutex_t));
 
@@ -162,6 +169,7 @@ void waitForConnections(int server_fd, player_t * player1, player_t * player2, l
   socklen_t client_address_size;
   char client_presentation[INET_ADDRSTRLEN];
   int client_fd;
+  int id = 1;
   pthread_t new_tid;
   thread_data_t * connection_data = NULL;
   int poll_response;
@@ -170,7 +178,7 @@ void waitForConnections(int server_fd, player_t * player1, player_t * player2, l
   // Get the size of the structure to store client information
   client_address_size = sizeof client_address;
 
-  while (!interrupted){
+  while (!interrupted && players < MAX_PLAYERS ){
 	//// POLL
     // Create a structure array to hold the file descriptors to poll
     struct pollfd test_fds[1];
@@ -204,16 +212,18 @@ void waitForConnections(int server_fd, player_t * player1, player_t * player2, l
   				fatalError("ERROR: accept");
 
 
-  			// Get the data from the client
-  			inet_ntop(client_address.sin_family, &client_address.sin_addr, client_presentation, sizeof client_presentation);
-  			printf("Received incomming connection from %s on port %d\n", client_presentation, client_address.sin_port);
+        // Get the data from the client
+        inet_ntop(client_address.sin_family, &client_address.sin_addr, client_presentation, sizeof client_presentation);
+        printf("Received incomming connection from %s on port %d\n", client_presentation, client_address.sin_port);
 
   			// Prepare the structure to send to the thread
         connection_data = malloc(sizeof (thread_data_t));
         connection_data->connection_fd = client_fd;
+        connection_data->player_id = id++;
         connection_data->player1 = player1;
         connection_data->player2 = player2;
         connection_data->data_locks = data_locks;
+        players++;
 
   			//CREATE A THREAD
         int result = pthread_create(&new_tid, NULL, attentionThread, (void*)connection_data);
@@ -231,6 +241,8 @@ void * attentionThread(void * arg){
   thread_data_t * connection_data = (thread_data_t *) arg;
   //char buffer[BUFFER_SIZE];
   getPlayerData(connection_data);
+  while(connection_data->player1->ready == 0 || connection_data->player2->ready == 0){}
+  battle(connection_data);
   //free connection memory
   free(connection_data);
   //close the thread
@@ -245,17 +257,79 @@ void getPlayerData(thread_data_t * connection_data){
     perror("Message recive");
     exit(EXIT_FAILURE);
   }
-  if(connection_data->player1->pokemon != NULL){
+  if(connection_data->player1->online == 0){
     // Process the request being careful of data consistency
     sscanf(buffer, "%s %s %f %d %f %f %d", connection_data->player1->name, connection_data->player1->pokemon->name, &connection_data->player1->pokemon->HP, &connection_data->player1->pokemon->MP, &connection_data->player1->pokemon->attack1, &connection_data->player1->pokemon->attack2, &connection_data->player1->pokemon->attack_percent);
-    printf("%s %s %f %d %f %f %d\n", connection_data->player1->name, connection_data->player1->pokemon->name, connection_data->player1->pokemon->HP, connection_data->player1->pokemon->MP, connection_data->player1->pokemon->attack1, connection_data->player1->pokemon->attack2, connection_data->player1->pokemon->attack_percent);
+    //printf("%s %s %f %d %f %f %d\n", connection_data->player1->name, connection_data->player1->pokemon->name, connection_data->player1->pokemon->HP, connection_data->player1->pokemon->MP, connection_data->player1->pokemon->attack1, connection_data->player1->pokemon->attack2, connection_data->player1->pokemon->attack_percent);
+    connection_data->player1->online = 1;
+    sprintf(buffer, "WAIT");
+    sendString(connection_data->connection_fd, buffer);
+    while (connection_data->player2->online == 0){}
+    sprintf(buffer, "PLAY");
+    sendString(connection_data->connection_fd, buffer);
+    connection_data->player1->ready = 1;
   } else {
     // Process the request being careful of data consistency
     sscanf(buffer, "%s %s %f %d %f %f %d", connection_data->player2->name, connection_data->player2->pokemon->name, &connection_data->player2->pokemon->HP, &connection_data->player2->pokemon->MP, &connection_data->player2->pokemon->attack1, &connection_data->player2->pokemon->attack2, &connection_data->player2->pokemon->attack_percent);
-    printf("%s %s %f %d %f %f %d\n", connection_data->player2->name, connection_data->player2->pokemon->name, connection_data->player2->pokemon->HP, connection_data->player2->pokemon->MP, connection_data->player2->pokemon->attack1, connection_data->player2->pokemon->attack2, connection_data->player2->pokemon->attack_percent);
+    connection_data->player2->online = 1;
+    sprintf(buffer, "PLAY");
+    sendString(connection_data->connection_fd, buffer);
+    connection_data->player2->ready = 1;
+    //printf("%s %s %f %d %f %f %d\n", connection_data->player2->name, connection_data->player2->pokemon->name, connection_data->player2->pokemon->HP, connection_data->player2->pokemon->MP, connection_data->player2->pokemon->attack1, connection_data->player2->pokemon->attack2, connection_data->player2->pokemon->attack_percent);
   }
-  sprintf(buffer, "RECIVED");
-  sendString(connection_data->connection_fd, buffer);
+  // if(connection_data->player1->ready == 1 && connection_data->player2->ready == 1){
+  //   battle(connection_data);
+  // }
+}
+
+void battle(thread_data_t * connection_data){
+
+  if(connection_data->player_id==1){
+    if (!recvString(connection_data->connection_fd, buffer, BUFFER_SIZE)){
+      perror("Message recive");
+      exit(EXIT_FAILURE);
+    }
+    if(strncmp(buffer, "READY", 5) == 0){
+      sprintf(buffer, "TURN");
+      sendString(connection_fd, buffer);
+    }
+
+  } else if (connection_data->player_id==2){
+    if (!recvString(connection_data->connection_fd, buffer, BUFFER_SIZE)){
+      perror("Message recive");
+      exit(EXIT_FAILURE);
+    }
+    if(strncmp(buffer, "READY", 5) == 0){
+      sprintf(buffer, "WAIT");
+      sendString(connection_fd, buffer);
+    }
+  }
+}
+
+void attack(thread_data_t * connection_data){
+	int prob1 = rand() % 100 + 1;
+	int prob2 = rand() % 100 + 1;
+	int oppAttack1 = rand() % 2 + 1;
+	float finalattack1 = opponent->MP * opponent->attack1, finalattack2 = opponent->MP * opponent->attack2, pikachuAttack = (pikachu->MP * attack);
+
+	if (prob1 <= pikachu->attack_percent) {
+		opponent->HP -= pikachuAttack;
+		printf("\nYou take %.0f of his HP!\n", pikachuAttack);
+	} else {
+    printf("\nYour attack has failed\n");
+  }
+
+  if (prob2 <= opponent->attack_percent) {
+		if (oppAttack1 == 1) {
+			pikachu->HP -= finalattack1;
+			printf("\nThe opponent has taken %.0f of your HP!\n", finalattack1);
+		} else if (oppAttack1 == 2) {
+			pikachu->HP -= finalattack2;
+			printf("\nThe opponent has taken %.0f of your HP!\n", finalattack2);
+		}
+	} else {
+    printf("\nHis attack failed\n");
+  }
 }
 
 void closeGame(player_t * player1, player_t * player2, locks_t * data_locks){
