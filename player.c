@@ -38,6 +38,8 @@ void youwon();
 void loop_Mainmenu(char* name, pokemon pikachu, int numPotions[3], int stage[4]);
 void playOnline(char* name, pokemon * pikachu);
 void battleOnline(char * name, pokemon * pikachu, int connection_fd);
+void battleDefend(char * name, pokemon * pikachu, int connection_fd);
+void battleAttack(char * name, pokemon * pikachu, int connection_fd);
 
 int main(int argC, char *argV[]){
   pokemon pikachu;
@@ -460,14 +462,33 @@ void battleOnline(char * name, pokemon * pikachu, int connection_fd){
        exit(1);
      }
      if(strncmp(buffer, "TURN", 4) == 0)
-       battleAction(name, pikachu, connection_fd);
+       battleAttack(name, pikachu, connection_fd);
+
      if(strncmp(buffer, "WAIT", 4) == 0)
-       battleRecive(char * name, pokemon * pikachu, int connection_fd);
- }
+       battleDefend(name, pikachu, connection_fd);
+  }
 }
 
-battleAction(char * name, pokemon * pikachu, int connection_fd){
+void battleAttack(char * name, pokemon * pikachu, int connection_fd){
+  float PikachuHPFull = pikachu->HP;
+  char opt;
+  char buffer[BUFFER_SIZE];
 
+  pikachuBack(pikachu->HP, PikachuHPFull, pikachu->name);
+  scanf("%c", &opt);
+  sprintf(buffer, "%c", opt);
+  sendString(connection_fd, buffer);
+}
+
+//No esta acabada
+void battleDefend(char * name, pokemon * pikachu, int connection_fd){
+  float HP;
+  char buffer[BUFFER_SIZE];
+  if (!recvString(connection_fd, buffer, BUFFER_SIZE) ){
+     printf("Server closed the connection\n");
+     exit(1);
+   }
+   sscanf(buffer, "%f %f", &pikachu->HP, &HP);
 }
 
 void GenderName(char* name){
