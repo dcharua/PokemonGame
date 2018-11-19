@@ -60,4 +60,6 @@ int recvString(int connection_fd, char * buffer, int size);
 */
 void sendString(int connection_fd, char * buffer);
 
+
+void getMessage(int connection_fd, char * buffer, int size );
 #endif

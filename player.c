@@ -38,8 +38,8 @@ void youwon();
 void loop_Mainmenu(char* name, pokemon pikachu, int numPotions[3], int stage[4]);
 void playOnline(char* name, pokemon * pikachu);
 void battleOnline(char * name, pokemon * pikachu, int connection_fd);
-void battleDefend(char * name, pokemon * pikachu, int connection_fd);
-void battleAttack(char * name, pokemon * pikachu, int connection_fd);
+void battleDefend(char * name, pokemon * pikachu, pokemon * opponent, int connection_fd, float full_HP, float opponent_full_HP);
+void battleAttack(char * name, pokemon * pikachu, pokemon * opponent, int connection_fd, float full_HP, float opponent_full_HP);
 
 int main(int argC, char *argV[]){
   pokemon pikachu;
@@ -421,89 +421,80 @@ void playOnline(char* name, pokemon * pikachu){
   // Start the server
   connection_fd = connectSocket("127.0.0.1", "8989");
   if (connection_fd ){
-    // Prepare the message to the server
+    // Send my data
     sprintf(buffer, "%s %s %f %d %f %f %d", name, pikachu->name, pikachu->HP, pikachu->MP, pikachu->attack1, pikachu->attack2, pikachu->attack_percent);
   }
   sendString(connection_fd, buffer);
   // RECV
   // Receive the response
-  if (!recvString(connection_fd, buffer, BUFFER_SIZE) ){
-    printf("Server closed the connection\n");
-    exit(1);
-  }
+  getMessage(connection_fd, buffer, BUFFER_SIZE);
 
   if(strncmp(buffer, "WAIT", 4) == 0)
     printf("Waiting for another player\n");
   while ( strncmp(buffer, "PLAY", 4) != 0){
-    if (!recvString(connection_fd, buffer, BUFFER_SIZE) ){
-       printf("Server closed the connection\n");
-       exit(1);
-    }
+    getMessage(connection_fd, buffer, BUFFER_SIZE);
   }
   battleOnline(name, pikachu, connection_fd);
 }
 
 void battleOnline(char * name, pokemon * pikachu, int connection_fd){
   char buffer[BUFFER_SIZE];
-  printf("===== WELCOME TO THE COLISEUM =====\n");
+  float full_HP = pikachu->HP;
+  pokemon opponent;
+  char opponent_name[15];
+  //Get opponent data
+  sprintf(buffer, "OPPONENT");
+  sendString(connection_fd, buffer);
+  getMessage(connection_fd, buffer, BUFFER_SIZE);
+  sscanf(buffer, "%s %s %f %d %f %f %d", opponent_name,  opponent.name, &opponent.HP, &opponent.MP, &opponent.attack1, &opponent.attack2, &opponent.attack_percent);
+  float opponent_full_HP = opponent.HP;
   sprintf(buffer, "READY");
   sendString(connection_fd, buffer);
+  //Battle Loop
+  printf("===== WELCOME TO THE COLISEUM =====\n");
   while(strncmp(buffer, "END", 3) != 0){
-    if (!recvString(connection_fd, buffer, BUFFER_SIZE) ){
-       printf("Server closed the connection\n");
-       exit(1);
-     }
-     printf("%s\n", buffer);
-     if(strncmp(buffer, "TURN", 4) == 0)
-       battleAttack(name, pikachu, connection_fd);
+    getMessage(connection_fd, buffer, BUFFER_SIZE);
+    printf("%s\n", buffer);
+    if(strncmp(buffer, "TURN", 4) == 0)
+      battleAttack(name, pikachu, &opponent, connection_fd, full_HP, opponent_full_HP);
 
-     if(strncmp(buffer, "WAIT", 4) == 0)
-       battleDefend(name, pikachu, connection_fd);
+    if(strncmp(buffer, "WAIT", 4) == 0)
+      battleDefend(name, pikachu, &opponent, connection_fd, full_HP, opponent_full_HP);
   }
 }
 
-void battleAttack(char * name, pokemon * pikachu, int connection_fd){
-  float PikachuHPFull = pikachu->HP;
-  float attack, HP;
+void battleAttack(char * name, pokemon * pikachu, pokemon * opponent, int connection_fd, float full_HP, float opponent_full_HP){
+  float attack;
   char action = 0;
   char buffer[BUFFER_SIZE];
-
-  pikachuBack(pikachu->HP, PikachuHPFull, pikachu->name);
-  fflush(stdin);
-  fflush(stdout);
+  gengar(opponent->HP,  opponent_full_HP, opponent->name);
+  pikachuBack(pikachu->HP, full_HP, pikachu->name);
   scanf(" %c", &action);
   sprintf(buffer, "%c", action);
-  printf("player action = %c\n", action);
   sendString(connection_fd, buffer);
   //recibo el resultado
-  if (!recvString(connection_fd, buffer, BUFFER_SIZE) ){
-     printf("Server closed the connection\n");
-     exit(1);
-   }
-   sscanf(buffer, "%f %f %f", &attack, &pikachu->HP, &HP);
-   if (attack > 0){
-     printf("\n=================================\nYou Take %f of his HP\n =================================\n", attack);
-   } else {
-      printf("\n##################\nYour attack has failed\n##################\n");
-   }
+  getMessage(connection_fd, buffer, BUFFER_SIZE);
+  sscanf(buffer, "%f %f %f", &attack, &pikachu->HP, &opponent->HP);
+  if (attack > 0){
+   printf("\n=================================\nYou Take %f of his HP\n=================================\n", attack);
+  } else {
+    printf("\n##################\nYour attack has failed\n##################\n");
+  }
 }
 
 //No esta acabada
-void battleDefend(char * name, pokemon * pikachu, int connection_fd){
-  float HP, attack;
+void battleDefend(char * name, pokemon * pikachu, pokemon * opponent, int connection_fd,  float full_HP, float opponent_full_HP){
+  float attack;
   char buffer[BUFFER_SIZE];
   //recibo el resultado del ataque del oponente
   printf("Waiting for player attack\n");
-  if (!recvString(connection_fd, buffer, BUFFER_SIZE) ){
-     printf("Server closed the connection\n");
-     exit(1);
-   }
-   sscanf(buffer, "%f %f %f", &attack, &pikachu->HP, &HP);
-   if (attack > 0){
-     printf("\n""""""""""""""""""""""""""""""\nHe Takes %f of your HP\n""""""""""""""""""""""""""""""\n", attack);
-   } else {
-      printf("\n!!!!!!!!!!!!!!!!!!!!!\nHis attack has failed\n!!!!!!!!!!!!!!!!!!!!!\n");
-   }
+  getMessage(connection_fd, buffer, BUFFER_SIZE);
+  sscanf(buffer, "%f %f %f", &attack, &pikachu->HP, & opponent->HP);
+  if (attack > 0){
+   printf("\n""""""""""""""""""""""""""""""\nHe Takes %f of your HP\n""""""""""""""""""""""""""""""\n", attack);
+  } else {
+    printf("\n!!!!!!!!!!!!!!!!!!!!!\nHis attack has failed\n!!!!!!!!!!!!!!!!!!!!!\n");
+  }
 }
 
 void GenderName(char* name){

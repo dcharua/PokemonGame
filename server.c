@@ -30,6 +30,8 @@
 
 ///// Structure definitions
 int interrupted = 0;
+int turn = 1;
+float attack_points;
 
 typedef struct pokemon{
   char name[10];
@@ -61,8 +63,6 @@ typedef struct data_struct {
   int connection_fd;
   // The file descriptor for the socket
   int player_id;
-  float attack;
-  int turn;
   // A pointer to a players data
   player_t * player1;
   player_t * player2;
@@ -90,6 +90,7 @@ int main(int argc, char * argv[]){
   int server_fd;
   player_t player1, player2;
   locks_t data_locks;
+  srand(time(NULL));
 
   printf("\n=== Pokemon Coliseum Server ===\n");
 
@@ -248,10 +249,11 @@ void waitForConnections(int server_fd, player_t * player1, player_t * player2, l
 void * attentionThread(void * arg){
   // Receive the data for the bank, mutexes and socket file descriptor
   thread_data_t * connection_data = (thread_data_t *) arg;
-  //char buffer[BUFFER_SIZE];
+  //get the data form the incoming player
   getPlayerData(connection_data);
+  //Wait for boyh players to be online before battle
   while(connection_data->player1->ready == 0 || connection_data->player2->ready == 0){}
-
+  //go to battle function
   battle(connection_data);
   //free connection memory
   free(connection_data);
@@ -261,25 +263,23 @@ void * attentionThread(void * arg){
 
 void getPlayerData(thread_data_t * connection_data){
   char buffer[BUFFER_SIZE];
-  // Receive the request
-  //if massage was not recived succesfully from client exit
-  if (!recvString(connection_data->connection_fd, buffer, BUFFER_SIZE)){
-    perror("Message recive");
-    exit(EXIT_FAILURE);
-  }
+  getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
+  //if player one is not online, new player is player 1
   if(connection_data->player1->online == 0){
-    // Process the request being careful of data consistency
+    //get data from the player, set player online and send WAIT signal
     sscanf(buffer, "%s %s %f %d %f %f %d", connection_data->player1->name, connection_data->player1->pokemon->name, &connection_data->player1->pokemon->HP, &connection_data->player1->pokemon->MP, &connection_data->player1->pokemon->attack1, &connection_data->player1->pokemon->attack2, &connection_data->player1->pokemon->attack_percent);
     printf("Player data: %s %s %f %d %f %f %d\n", connection_data->player1->name, connection_data->player1->pokemon->name, connection_data->player1->pokemon->HP, connection_data->player1->pokemon->MP, connection_data->player1->pokemon->attack1, connection_data->player1->pokemon->attack2, connection_data->player1->pokemon->attack_percent);
     connection_data->player1->online = 1;
     sprintf(buffer, "WAIT");
     sendString(connection_data->connection_fd, buffer);
+    // while player 2 is not online wait
     while (connection_data->player2->online == 0){}
+    //When player 2 is online send PLAY signal and set player 1 to ready
     sprintf(buffer, "PLAY");
     sendString(connection_data->connection_fd, buffer);
     connection_data->player1->ready = 1;
-  } else {
-    // Process the request  being careful of data consistency
+  } else { //Player 1 is already online, new player is player 2
+    // get data from the player and send set player online and send PLAY signal and set ready
     sscanf(buffer, "%s %s %f %d %f %f %d", connection_data->player2->name, connection_data->player2->pokemon->name, &connection_data->player2->pokemon->HP, &connection_data->player2->pokemon->MP, &connection_data->player2->pokemon->attack1, &connection_data->player2->pokemon->attack2, &connection_data->player2->pokemon->attack_percent);
     connection_data->player2->online = 1;
     sprintf(buffer, "PLAY");
@@ -290,49 +290,72 @@ void getPlayerData(thread_data_t * connection_data){
 }
 
 void battle(thread_data_t * connection_data){
-  connection_data->turn = 1;
+  turn = 1;
   char buffer[BUFFER_SIZE];
+  // id its player 1
   if(connection_data->player_id==1){
-    if (!recvString(connection_data->connection_fd, buffer, BUFFER_SIZE)){
-      perror("Message recive");
-      exit(EXIT_FAILURE);
+    //get OPPONET request form player and send opponent data
+    getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
+    if(strncmp(buffer, "OPPONENT", 8) == 0){
+      sprintf(buffer, "%s %s %f %d %f %f %d", connection_data->player2->name, connection_data->player2->pokemon->name, connection_data->player2->pokemon->HP, connection_data->player2->pokemon->MP, connection_data->player2->pokemon->attack1, connection_data->player2->pokemon->attack2, connection_data->player2->pokemon->attack_percent);
+      sendString(connection_data->connection_fd, buffer);
     }
+    //get READY form player and start the battle
+    getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
     if(strncmp(buffer, "READY", 5) == 0){
-      while(connection_data->player1->pokemon-> HP > 0 || connection_data->player2->pokemon-> HP > 0){
+      //battle until a player HP is 0 or less
+      printf("HP1:%f HP2:%f\n", connection_data->player1->pokemon->HP, connection_data->player2->pokemon->HP);
+      while(connection_data->player1->pokemon->HP > 0 || connection_data->player2->pokemon->HP > 0){
+        //first is player's 1 turn send TURN signal
         sprintf(buffer, "TURN");
         sendString(connection_data->connection_fd, buffer);
+        //recive the attack
         reciveAttack(connection_data);
+        //send the result of the attack
         sendData(connection_data);
 
-
+        //Now player 1 waits from player's 1 attack
         sprintf(buffer, "WAIT");
         sendString(connection_data->connection_fd, buffer);
-        while(connection_data->turn == 2){}
+        //wait until player 2 send the attack
+        while(turn == 2){}
+        //send the result of player's 2 attack to player 1
         sendData(connection_data);
       }
     }
   } else if (connection_data->player_id==2){
-    if (!recvString(connection_data->connection_fd, buffer, BUFFER_SIZE)){
-      perror("Message recive");
-      exit(EXIT_FAILURE);
+    // if its player 2 get OPPNONENT data request and send it
+    getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
+    if(strncmp(buffer, "OPPONENT", 8) == 0){
+      sprintf(buffer, "%s %s %f %d %f %f %d", connection_data->player1->name, connection_data->player1->pokemon->name, connection_data->player1->pokemon->HP, connection_data->player1->pokemon->MP, connection_data->player1->pokemon->attack1, connection_data->player1->pokemon->attack2, connection_data->player1->pokemon->attack_percent);
+      sendString(connection_data->connection_fd, buffer);
     }
+    //Get READY signal
+    getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
     if(strncmp(buffer, "READY", 5) == 0){
+      //battle until a players HP is cero or less
       while(connection_data->player1->pokemon-> HP > 0 || connection_data->player2->pokemon-> HP > 0){
+        //first is players1 turn so send WAIT signal
         sprintf(buffer, "WAIT");
         sendString(connection_data->connection_fd, buffer);
-
-        //not going out of loop
-        while(connection_data->turn == 1){}
+        printf("turn %d\n", turn );
+        //wait until player 1 sends the attack
+        while(turn == 1){}
         printf("done waitig\n");
+        //send the data from players 1 attack
         sendData(connection_data);
 
-
+        //now its player's 2 turn
         sprintf(buffer, "TURN");
         sendString(connection_data->connection_fd, buffer);
+        //get the attack from player 2
         reciveAttack(connection_data);
+        //send the result of the attack
+        sendData(connection_data);
       }
     }
   }
+  //battle id over send END signal
   sprintf(buffer, "END");
   sendString(connection_data->connection_fd, buffer);
 }
@@ -341,7 +364,7 @@ void sendData(thread_data_t * connection_data){
   char buffer[BUFFER_SIZE];
   if(connection_data->player_id==1){
     if (connection_data->player2->online == 1){
-    sprintf(buffer, "%f %f %f",  connection_data->attack, connection_data->player1->pokemon->HP, connection_data->player2->pokemon->HP);
+    sprintf(buffer, "%f %f %f",  attack_points, connection_data->player1->pokemon->HP, connection_data->player2->pokemon->HP);
     sendString(connection_data->connection_fd, buffer);
     }else{
       sprintf(buffer, "END");
@@ -350,7 +373,7 @@ void sendData(thread_data_t * connection_data){
   } else if (connection_data->player_id==2){
     if (connection_data->player1->online == 1){
       printf("sending data player 2\n");
-      sprintf(buffer, "%f %f %f", connection_data->attack, connection_data->player2->pokemon->HP, connection_data->player1->pokemon->HP);
+      sprintf(buffer, "%f %f %f", attack_points, connection_data->player2->pokemon->HP, connection_data->player1->pokemon->HP);
       sendString(connection_data->connection_fd, buffer);
     } else{
       sprintf(buffer, "END");
@@ -362,10 +385,7 @@ void sendData(thread_data_t * connection_data){
 void reciveAttack(thread_data_t *connection_data){
   char buffer[BUFFER_SIZE];
   char action;
-  if (!recvString(connection_data->connection_fd, buffer, BUFFER_SIZE)){
-    perror("Message recive");
-    exit(EXIT_FAILURE);
-  }
+  getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
   sscanf(buffer, "%c", &action);
   printf("action %c\n", action);
   if (action == '1' || action == '2')
@@ -375,38 +395,39 @@ void reciveAttack(thread_data_t *connection_data){
 }
 
 void attack(thread_data_t * connection_data, char action){
-  printf("antes con data turn %d\n", connection_data->turn);
+  printf("antes con data turn %d\n", turn);
 	int prob = rand() % 100 + 1;
-  connection_data->attack=0.0;
   if(connection_data->player_id==1){
     if (action == '1')
-      connection_data->attack = connection_data->player1->pokemon->MP * connection_data->player1->pokemon->attack1;
+      attack_points = connection_data->player1->pokemon->MP * connection_data->player1->pokemon->attack1;
     if (action == '2')
-      connection_data->attack = connection_data->player1->pokemon->MP * connection_data->player1->pokemon->attack2;
+      attack_points = connection_data->player1->pokemon->MP * connection_data->player1->pokemon->attack2;
 
+    printf("prob %d, attack %d \n", prob, connection_data->player1->pokemon->attack_percent);
   	if (prob <= connection_data->player1->pokemon->attack_percent) {
-  		connection_data->player2->pokemon->HP -= connection_data->attack;
-  		printf("\nPlayer 1 takes %f of Player 2 HP!\n", connection_data->attack);
+  		connection_data->player2->pokemon->HP -= attack_points;
+  		printf("\nPlayer 1 takes %f of Player 2 HP!\n", attack_points);
   	} else {
       printf("\nYour attack has failed\n");
-      connection_data->attack = 0.0;
+      attack_points = 0.0;
     }
-    connection_data->turn = 2;
-    printf("despues con data turn %d\n", connection_data->turn);
+    turn = 2;
+    printf("despues con data turn %d\n", turn);
   } else if(connection_data->player_id==2){
     if (action == '1')
-      connection_data->attack = connection_data->player2->pokemon->MP * connection_data->player2->pokemon->attack1;
+      attack_points = connection_data->player2->pokemon->MP * connection_data->player2->pokemon->attack1;
     if (action == '2')
-      connection_data->attack = connection_data->player2->pokemon->MP * connection_data->player2->pokemon->attack2;
+      attack_points = connection_data->player2->pokemon->MP * connection_data->player2->pokemon->attack2;
 
+    printf("Player 2 prob %d, attack %d \n", prob, connection_data->player1->pokemon->attack_percent);
   	if (prob <= connection_data->player2->pokemon->attack_percent) {
-  		connection_data->player1->pokemon->HP -= connection_data->attack;
-      printf("\nPlayer 2 takes %f of Player 1 HP!\n",connection_data->attack);
+  		connection_data->player1->pokemon->HP -= attack_points;
+      printf("\nPlayer 2 takes %f of Player 1 HP!\n",attack_points);
   	} else {
       printf("\nYour attack has failed\n");
-      connection_data->attack = 0.0;
+      attack_points = 0.0;
     }
-    connection_data->turn = 1;
+    turn = 1;
   }
 }
 

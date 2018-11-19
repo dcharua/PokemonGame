@@ -173,6 +173,13 @@ int connectSocket(char * address, char * port)
     Receive the file descriptor, a string to store the message and the max string size
     Returns 1 on successful receipt, or 0 if the connection has finished
 */
+void getMessage(int connection_fd, char * buffer, int size ){
+	if (!recvString(connection_fd, buffer, size)){
+ 	 perror("Message recive");
+ 	 exit(EXIT_FAILURE);
+  }
+}
+
 int recvString(int connection_fd, char * buffer, int size)
 {
     int chars_read;
