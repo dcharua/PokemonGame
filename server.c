@@ -304,7 +304,7 @@ void battle(thread_data_t * connection_data){
     if(strncmp(buffer, "READY", 5) == 0){
       //battle until a player HP is 0 or less
       printf("HP1:%f HP2:%f\n", connection_data->player1->pokemon->HP, connection_data->player2->pokemon->HP);
-      while(connection_data->player1->pokemon->HP > 0 || connection_data->player2->pokemon->HP > 0){
+      while(connection_data->player1->pokemon->HP > 0 && connection_data->player2->pokemon->HP > 0){
         pthread_mutex_lock(&connection_data->data_locks->attack_mutex);
           //first is player's 1 turn send TURN signal
           sprintf(buffer, "TURN");
@@ -341,7 +341,7 @@ void battle(thread_data_t * connection_data){
     getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
     if(strncmp(buffer, "READY", 5) == 0){
       //battle until a players HP is cero or less
-      while(connection_data->player1->pokemon-> HP > 0 || connection_data->player2->pokemon-> HP > 0){
+      while(connection_data->player1->pokemon-> HP > 0 && connection_data->player2->pokemon-> HP > 0){
         //first is players1 turn so send WAIT signal
         pthread_mutex_lock(&connection_data->data_locks->wait_mutex);
 
@@ -430,7 +430,6 @@ void attack(thread_data_t * connection_data, char action){
         printf("\nYour attack has failed\n");
         attack_points = 0.0;
       }
-      turn = 2;
     //pthread_mutex_unlock(&connection_data->data_locks->attack_mutex);
   } else if(connection_data->player_id==2){
     //pthread_mutex_lock(&connection_data->data_locks->attack_mutex);
@@ -447,7 +446,6 @@ void attack(thread_data_t * connection_data, char action){
         printf("\nYour attack has failed\n");
         attack_points = 0.0;
       }
-      turn = 1;
     //pthread_mutex_unlock(&connection_data->data_locks->attack_mutex);
   }
 }

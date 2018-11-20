@@ -479,12 +479,13 @@ void battleAttack(char * name, pokemon * pikachu, pokemon * opponent, int connec
   //recibo el resultado
   getMessage(connection_fd, buffer, BUFFER_SIZE);
   sscanf(buffer, "%f %f %f", &attack, &pikachu->HP, &opponent->HP);
-  printf("data recived\n");
   if (attack > 0){
    printf("\n=================================\nYou Take %f of his HP\n=================================\n", attack);
-  } else {
+ } else {
     printf("\n##################\nYour attack has failed\n##################\n");
   }
+  if (opponent->HP <= 0)
+    printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE WON\n!!!!!!!!!!!!!!!!!!!!!\n");
 }
 
 //No esta acabada
@@ -499,9 +500,11 @@ void battleDefend(char * name, pokemon * pikachu, pokemon * opponent, int connec
   sscanf(buffer, "%f %f %f", &attack, &pikachu->HP, & opponent->HP);
   if (attack > 0){
    printf("\n""""""""""""""""""""""""""""""\nHe Takes %f of your HP\n""""""""""""""""""""""""""""""\n", attack);
-  } else {
+ }else{
     printf("\n!!!!!!!!!!!!!!!!!!!!!\nHis attack has failed\n!!!!!!!!!!!!!!!!!!!!!\n");
   }
+  if (pikachu->HP <= 0)
+    printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE LOST\n!!!!!!!!!!!!!!!!!!!!!\n");
 }
 
 void GenderName(char* name){
