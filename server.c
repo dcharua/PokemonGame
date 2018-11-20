@@ -316,7 +316,6 @@ void battle(thread_data_t * connection_data){
           turn = 2;
         pthread_mutex_unlock(&connection_data->data_locks->attack_mutex);
 
-
         pthread_mutex_lock(&connection_data->data_locks->wait_mutex);
           //Now player 1 waits from player's 1 attack
           sprintf(buffer, "WAIT");
@@ -329,7 +328,6 @@ void battle(thread_data_t * connection_data){
           //send the result of player's 2 attack to player 1
           sendData(connection_data);
         pthread_mutex_unlock(&connection_data->data_locks->wait_mutex);
-
       }
     }
   } else if (connection_data->player_id==2){
