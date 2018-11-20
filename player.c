@@ -53,8 +53,9 @@ int main(int argC, char *argV[]){
   printf("\t\tWELCOME TO THE WORLD OF POKEMONS\n");
   printf("*****************************************************************\n\n");
   printf("Do you have a saved progress? (y/n) : ");
-  scanf("%c", &savedProgress);
-
+  //scanf("%c", &savedProgress);
+  savedProgress = getchar();
+  getchar();
   if (savedProgress == 'y') {
     read_file(fpikachuTwo, &pikachu);
     read_items(fItems, name, usedPotions, usedstage);
@@ -375,7 +376,8 @@ void loop_Mainmenu(char* name,  pokemon pikachu, int numPotions[3], int stage[4]
     printf("\t5. Save game\n");
     printf("\t0. Quit the game\n\n");
     printf("Select a option : ");
-    scanf("%d", &option);
+    //scanf("%d", &option);
+    option = 4;
     switch (option) {
       case 1:
         select_stage(name, pikachu, &numPotions[0], &numPotions[1], &numPotions[2], stage);
@@ -454,27 +456,30 @@ void battleOnline(char * name, pokemon * pikachu, int connection_fd){
   printf("===== WELCOME TO THE COLISEUM =====\n");
   while(strncmp(buffer, "END", 3) != 0){
     getMessage(connection_fd, buffer, BUFFER_SIZE);
-    printf("%s\n", buffer);
+    printf("%s\n\n", buffer);
     if(strncmp(buffer, "TURN", 4) == 0)
       battleAttack(name, pikachu, &opponent, connection_fd, full_HP, opponent_full_HP);
 
-    if(strncmp(buffer, "WAIT", 4) == 0)
+    else if(strncmp(buffer, "WAIT", 4) == 0)
       battleDefend(name, pikachu, &opponent, connection_fd, full_HP, opponent_full_HP);
   }
 }
 
 void battleAttack(char * name, pokemon * pikachu, pokemon * opponent, int connection_fd, float full_HP, float opponent_full_HP){
   float attack;
-  char action = 0;
+  char action;
   char buffer[BUFFER_SIZE];
   gengar(opponent->HP,  opponent_full_HP, opponent->name);
   pikachuBack(pikachu->HP, full_HP, pikachu->name);
-  scanf(" %c", &action);
+  //scanf(" %c", &action);
+  action = getchar();
+  getchar();
   sprintf(buffer, "%c", action);
   sendString(connection_fd, buffer);
   //recibo el resultado
   getMessage(connection_fd, buffer, BUFFER_SIZE);
   sscanf(buffer, "%f %f %f", &attack, &pikachu->HP, &opponent->HP);
+  printf("data recived\n");
   if (attack > 0){
    printf("\n=================================\nYou Take %f of his HP\n=================================\n", attack);
   } else {
@@ -487,6 +492,8 @@ void battleDefend(char * name, pokemon * pikachu, pokemon * opponent, int connec
   float attack;
   char buffer[BUFFER_SIZE];
   //recibo el resultado del ataque del oponente
+  sprintf(buffer, "WAITING");
+  sendString(connection_fd, buffer);
   printf("Waiting for player attack\n");
   getMessage(connection_fd, buffer, BUFFER_SIZE);
   sscanf(buffer, "%f %f %f", &attack, &pikachu->HP, & opponent->HP);
