@@ -46,6 +46,7 @@ typedef struct pokemon{
 
 typedef struct player{
   char name[10];
+  int potions[3];
   int online;
   int ready;
   int turn;
@@ -232,7 +233,8 @@ void waitForConnections(int server_fd, player_t * player1, player_t * player2, l
         connection_data->player1 = player1;
         connection_data->player2 = player2;
         connection_data->data_locks = data_locks;
-
+        if (id == 3)
+          id = 1;
 
   			//CREATE A THREAD
         int result = pthread_create(&new_tid, NULL, attentionThread, (void*)connection_data);
