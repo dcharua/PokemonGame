@@ -1,15 +1,23 @@
+// Basic libraries
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include <unistd.h>
+
 // Sockets libraries
 #include <netdb.h>
 #include <arpa/inet.h>
+
 // Custom libraries
 #include "sockets.h"
 
+// Definition of the size of the buffer that we are
+// going to use for the communication
 #define BUFFER_SIZE 1024
 
+// Structure of the pokemon attributes
 typedef struct pokemon{
   char name[10];
   float HP;
@@ -17,162 +25,271 @@ typedef struct pokemon{
   float attack1;
   float attack2;
   int attack_percent;
-}pokemon_t;
+} pokemon_t;
 
+// Structure of the player attributes
 typedef struct player{
   char name[10];
+  int gender;
   int potions[3];
   int stages[4];
   pokemon_t * pokemon;
 } player_t;
 
 
-void potions(player_t* player);
-void introduction(char* name);
+// DEFINITION OF THE FUNCTIONS
+
+// Functions that read files
 int read_file(char* filename, player_t* player);
 int read_items(char* filename, player_t* player);
+
+// Main menu loop
+void loop_Mainmenu(player_t * player);
+void introduction(player_t * player);
+void select_stage(player_t * player);
+
+// Functions that write files
 int write_file(char* filename, player_t* player);
 int write_pokemon(char* filename, player_t * player);
-void printStatus(player_t * player);
+
+// Functions that print without arguments
 void genders();
 void male();
 void female();
 void pikachufront();
 void map();
+void youwon();
+
+// Functions that print with parameters
+void GenderName(player_t * player);
+void printStatus(player_t * player);
+void backpack (player_t * player);
+void potions(player_t* player);
 void potionsPictures(player_t * player);
 void pikachuBack(float hp, float hpFull, char* name);
 void gengar(float hp, float hpFull, char* name);
 void charizard(float hp, float hpFull, char* name);
 void zapdos(float hp, float hpFull, char* name);
 void mew(float hp, float hpFull, char* name);
-void youwon();
-void loop_Mainmenu(player_t * player);
+
+
+// Online game
 void playOnline(player_t * player);
 void battleOnline(player_t * player, int connection_fd);
 void battleDefend(player_t * player, player_t * opponent, int connection_fd, float full_HP, float opponent_full_HP);
 void battleAttack(player_t * player, player_t * opponent, int connection_fd, float full_HP, float opponent_full_HP);
 
-int main(int argC, char *argV[]){
-  player_t player;
-  player.pokemon = malloc(sizeof (pokemon_t));
-  char savedProgress;
-  char name[30];
-  char* fpikachu = "Pikachu.txt";
+int main(int argC, char *argV[])
+{
+    player_t player;
+    player.pokemon = malloc(sizeof (pokemon_t));
+    int savedProgress = 0;
+    char* fpikachu = "Pikachu.txt";
 	char* fpikachuTwo = "PikachuTwo.txt";
 	char* fItems = "Items.txt";
 
-  printf("\t\tWELCOME TO THE WORLD OF POKEMONS\n");
-  printf("*****************************************************************\n\n");
-  printf("Do you have a saved progress? (y/n) : ");
-  //scanf("%c", &savedProgress);
-  savedProgress = getchar();
-  getchar();
-  if (savedProgress == 'y') {
-    read_file(fpikachuTwo, &player);
-    read_items(fItems, &player);
-    loop_Mainmenu(&player);
-  }
+    printf("\t\tWELCOME TO THE WORLD OF POKEMONS\n");
+    printf("*****************************************************************\n\n");
+    printf("  Do you have a saved progress? { Yes: 1 | No: 2 }\n");
 
-  else if (savedProgress == 'n') {
-    read_file(fpikachu, &player);
-    introduction(player.name);
+    while ((savedProgress != 1)&&(savedProgress != 2)) {
+        printf("\tOption: ");
+        scanf("%d", &savedProgress);
+        switch(savedProgress) {
+            case 1:
+                read_items(fItems, &player);
+                read_file(fpikachuTwo, &player);
+            break;
+
+            case 2:
+                introduction(&player);
+                read_file(fpikachu, &player);
+            break;
+
+            default:
+                printf("Invalid option, try again\n\n");
+            break;
+        }
+    }
+
     loop_Mainmenu(&player);
-  }
 
   return 0;
 }
 
+int read_file(char* filename, player_t* player)
+{
+    FILE* filePtr;
+    filePtr = fopen(filename, "r");
 
-int read_file(char* filename, player_t* player){
-  FILE* filePtr;
+    if (filePtr == NULL) {
+        printf("Could not open file '%s' for reading.\n", filename);
+        return 1;
+    }
 
-  filePtr = fopen(filename, "r");
-  if (filePtr == NULL) {
-    printf("Could not open file '%s' for reading.\n", filename);
-    return 1;
-  }
+    fscanf(filePtr, " %s", player->pokemon->name);
+    fscanf(filePtr, " %f", &player->pokemon->HP);
+    fscanf(filePtr, " %d", &player->pokemon->MP);
+    fscanf(filePtr, " %f", &player->pokemon->attack1);
+    fscanf(filePtr, " %f", &player->pokemon->attack2);
+    fscanf(filePtr, " %d", &player->pokemon->attack_percent);
 
-  fscanf(filePtr, " %s", player->pokemon->name);
-  fscanf(filePtr, " %f", &player->pokemon->HP);
-  fscanf(filePtr, " %d", &player->pokemon->MP);
-  fscanf(filePtr, " %f", &player->pokemon->attack1);
-  fscanf(filePtr, " %f", &player->pokemon->attack2);
-  fscanf(filePtr, " %d", &player->pokemon->attack_percent);
-
-  fclose(filePtr);
-  return 0;
+    fclose(filePtr);
+    return 0;
 }
 
-int read_items(char* filename, player_t* player){
+int read_items(char* filename, player_t* player)
+{
 	FILE* filePtr;
 	filePtr = fopen(filename, "r");
-	int i;
+	int i = 0;
 
 	if (filePtr == NULL)
 		printf("Could not open file '%s' for reading.\n", filename);
-
 
 	fscanf(filePtr, "%s", player->name);
+
 	for (i = 0; i < 3; i++)
-		fscanf(filePtr, " %d", &player->potions[i]);
+        fscanf(filePtr, " %d", &player->potions[i]);
 
 	for (i = 0; i < 4; i++)
-		fscanf(filePtr, " %d", &player->stages[i]);
-
-
-	fclose(filePtr);
-	return 0;
-}
-
-
-int write_file(char* filename, player_t* player){
-	FILE* filePtr;
-	int i;
-	filePtr = fopen(filename, "w");
-
-	if (filePtr == NULL)
-		printf("Could not open file '%s' for reading.\n", filename);
-
-
-	fprintf(filePtr, " %s", player->name);
-	for (i = 0; i < 3; i++)
-		fprintf(filePtr, " %d", player->potions[i]);
-
-	for (i = 0; i < 4; i++)
-		fprintf(filePtr, " %d", player->stages[i]);
-
+        fscanf(filePtr, " %d", &player->stages[i]);
 
 	fclose(filePtr);
 	return 0;
 }
 
-int write_pokemon(char* filename, player_t * player){
-	FILE* filePtr;
-	filePtr = fopen(filename, "w");
-	if (filePtr == NULL)
-		printf("Could not open file '%s' for reading.\n", filename);
+void introduction(player_t * player)
+{
+    printf("\n\nHello my name is Profesor Elm...\n");
+    printf("¿What is your name?\n\t Name: ");
+    scanf("%s", player->name);
+    GenderName(player);
 
+    // HERE WE ARE GOING TO PICK THE STARTER POKEMON
+    usleep(1000000);
+    printf("\nAnd now we are going to give you a new pokémon named Pikachu...\n");
+    pikachufront();
 
-	fprintf(filePtr, " %s", player->pokemon->name);
-	fprintf(filePtr, " %f", player->pokemon->HP);
-	fprintf(filePtr, " %d", player->pokemon->MP);
-	fprintf(filePtr, " %f", player->pokemon->attack1);
-	fprintf(filePtr, " %f", player->pokemon->attack2);
-	fprintf(filePtr, " %d", player->pokemon->attack_percent);
-
-	fclose(filePtr);
-	return 0;
+    printf("\nGreat choice. That pokémon is awesome\n");
+    usleep(2000000);
+    printf("\nHere you have a map that you have to complete to become a Pokemon Master\n");
+    usleep(2000000);
+    printf("\nIn each stage there is a battle of differents pokemon and you have to fight to get more potions\n");
+    usleep(2000000);
+    printf("\nYou won't be able to  pass to another level if the previous one hasn't been complete yet\n");
+    usleep(2000000);
+    printf("\nTheres other option where you can play against other players online so train hard to beat them\n");
+    usleep(2000000);
+    printf("\nYou have a lot items in your backpack that you can use on your pokemon\n");
+    usleep(2000000);
+    printf("\nWell thats all %s\n", player->name);
+    usleep(2000000);
+    printf("\nNow you can start, ¡GOOD LUCK IN YOUR JOURNEY!\n\n");
+    usleep(2000000);
 }
 
+void GenderName(player_t * player)
+{
+    int gender = 0;
 
+    while ((gender != 1) && (gender != 2))
+    {
+        printf("\n Well %s first things first, what gender do you want to be?\n\n", player->name);
+        usleep(1000000);
+        genders();
+        printf("\nChose an option : ");
+        scanf("%d", &gender);
+        switch(gender)
+        {
+            case 1:
+                printf("\nPerfect then, you will be him: \n\n");
+                usleep(1000000);
+                male();
+                printf("\n\t\t%s\n", player->name);
+            break;
 
-void printStatus(player_t * player){
-  printf("\n\t\t%s stats:\n", player->pokemon->name);
-  printf("\t\t\tHP:     %.0f\n", player->pokemon->HP);
-  printf("\t\t\tMP:     %d\n", player->pokemon->MP);
-  printf("\t\t\tAtt1:   %.2f\n", player->pokemon->attack1);
-  printf("\t\t\tAtt2:   %.2f\n", player->pokemon->attack2);
-  printf("\t\t\tAtt%%:   %d\n", player->pokemon->attack_percent);
+            case 2:
+                printf("\nPerfect now you are her: \n\n");
+                usleep(1000000);
+                female();
+                printf("\n\t\t%s\n", player->name);
+            break;
+
+            default:
+                printf("Invalid option, try again\n\n");
+            break;
+        }
+    }
+}
+
+void loop_Mainmenu(player_t * player)
+{
+    int option = 1;
+    char* fitems = "Items.txt";
+	char* fpikachu = "PikachuTwo.txt";
+
+    while (option != 0) {
+        printf("\n-------------------------------------------------------------------------------");
+        printf("\n  Welcome to the main menu %s, please choose one of the options below.\n\n", player->name);
+        printf("\t1. Go to the Map and main story\n");
+        printf("\t2. Check whats your backpack\n");
+        printf("\t3. Check your pokemon stats\n");
+        printf("\t4. Play Online\n");
+        printf("\t5. Save game\n");
+        printf("\t0. Quit the game\n\n");
+        printf("Select a option : ");
+        scanf("%d", &option);
+
+        switch (option) {
+            case 1:
+                // CHECK
+                select_stage(player);
+            break;
+
+            case 2:
+                // CHECK
+                backpack(player);
+            break;
+
+            case 3:
+                // CHECK
+                pikachufront();
+                printStatus(player);
+            break;
+
+            case 4:
+                // CHECK
+      			playOnline(player);
+            break;
+
+            case 5:
+      		    write_file(fitems, player);
+      			write_pokemon(fpikachu, player);
+      			printf("\n\n\tCongratulations . . . You already saved the game\n\n");
+            break;
+
+            case 0:
+                printf("\nHave you already saved your game? { Yes: 0 | No: 1 }\n");
+                printf("\tOption: ");
+                scanf("%d", &option);
+            break;
+
+            default:
+                printf("Invalid option, try again\n\n");
+            break;
+        }
+    }
+}
+
+void printStatus(player_t * player)
+{
+    printf("\n\t\t%s stats:\n", player->pokemon->name);
+    printf("\t\t\tHP:     %.0f\n", player->pokemon->HP);
+    printf("\t\t\tMP:     %d\n", player->pokemon->MP);
+    printf("\t\t\tAtt1:   %.2f\n", player->pokemon->attack1);
+    printf("\t\t\tAtt2:   %.2f\n", player->pokemon->attack2);
+    printf("\t\t\tAtt%%:   %d\n", player->pokemon->attack_percent);
 }
 
 void backpack (player_t * player){
@@ -382,60 +499,6 @@ void select_stage(player_t * player){
   }
 }
 
-void loop_Mainmenu(player_t * player){
-  char option = '1';
-	char* fitems = "Items.txt";
-	char* fpikachu = "PikachuTwo.txt";
-
-  while (option != '0') {
-    printf("\n-------------------------------------------------------------------------------");
-    printf("\n  Welcome to the main menu %s, please choose one of the options below.\n\n", player->name);
-    printf("\t1. Go to the Map and main story\n");
-    printf("\t2. Check whats your backpack\n");
-    printf("\t3. Check your pokemon stats\n");
-    printf("\t4. Play Online\n");
-    printf("\t5. Save game\n");
-    printf("\t0. Quit the game\n\n");
-    printf("Select a option : ");
-    option = getchar();
-    getchar();
-    switch (option) {
-      case '1':
-        select_stage(player);
-        break;
-
-      case '2':
-        backpack(player);
-        break;
-
-      case '3':
-        pikachufront();
-        printStatus(player);
-        break;
-
-      case '4':
-  			playOnline(player);
-        break;
-
-      case '5':
-  			write_file(fitems, player);
-  			write_pokemon(fpikachu, player);
-  			printf("\n\nCongratulations. You already saved the game\n\n");
-        break;
-
-      case '0':
-        printf("\nYes : 0 | No : 1\n");
-        printf("Do you already saved your game? : ");
-        option = getchar();
-        getchar();
-        break;
-
-      default:
-        break;
-    }
-  }
-}
-
 void playOnline(player_t * player){
   char address[20];
   char port[4];
@@ -528,34 +591,6 @@ void battleDefend(player_t * player, player_t * opponent, int connection_fd,  fl
     printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE LOST\n!!!!!!!!!!!!!!!!!!!!!\n");
 }
 
-void GenderName(char* name){
-  char gender = '0';
-  while ((gender != '1')&&(gender != '2')){
-      printf("\n Well %s first things first, what gender do you want to be?\n\n", name);
-      genders();
-      printf("\nChose an option : ");
-      gender = getchar();
-      getchar();
-      switch(gender){
-        case '1':
-          printf("\nPerfect then, you will be him: \n\n");
-          male();
-          printf("\n\t%s\n", name);
-          break;
-
-        case '2':
-          printf("\nPerfect now you are her: \n\n");
-          female();
-          printf("\n\t%s\n", name);
-          break;
-
-        default:
-          printf("Invalid option. Try again\n");
-          break;
-    }
-  }
-}
-
 void potions(player_t * player){
   char potion = '1';
   while (potion != '0'){
@@ -608,18 +643,42 @@ void potions(player_t * player){
   }
 }
 
-void introduction(char* name){
-  printf("\n\nWell... How do they call you? : ");
-  scanf("%s", name);
-  GenderName(name);
-  printf("\nAnd now we are going to give you a new Pokemon named Pikachu...\n");
-  pikachufront();
-  printf("\n... I hope you like it\n");
-  printf("\n\tHere you have a map that you have to complete to become a Pokemon Master\n");
-  printf("\n\tIn each stage there is a battle of differents pokemon and you have to fight\n");
-  printf("\n\tYou won't be able to  pass to another level if the previous one hasn't been complete yet\n");
-  printf("\n\tHere you have a lot items that you can use on your pikachu, thats all %s\n", name);
-  printf("\nNow you can start... Good Luck catching them all :)\n\n");
+int write_file(char* filename, player_t* player){
+	FILE* filePtr;
+	int i;
+	filePtr = fopen(filename, "w");
+
+	if (filePtr == NULL)
+		printf("Could not open file '%s' for reading.\n", filename);
+
+    fprintf(filePtr, " %s", player->name);
+
+    for (i = 0; i < 3; i++)
+		fprintf(filePtr, " %d", player->potions[i]);
+
+	for (i = 0; i < 4; i++)
+		fprintf(filePtr, " %d", player->stages[i]);
+
+
+	fclose(filePtr);
+	return 0;
+}
+
+int write_pokemon(char* filename, player_t * player){
+    FILE* filePtr;
+	filePtr = fopen(filename, "w");
+	if (filePtr == NULL)
+		printf("Could not open file '%s' for reading.\n", filename);
+
+	fprintf(filePtr, " %s", player->pokemon->name);
+	fprintf(filePtr, " %f", player->pokemon->HP);
+	fprintf(filePtr, " %d", player->pokemon->MP);
+	fprintf(filePtr, " %f", player->pokemon->attack1);
+	fprintf(filePtr, " %f", player->pokemon->attack2);
+	fprintf(filePtr, " %d", player->pokemon->attack_percent);
+
+	fclose(filePtr);
+	return 0;
 }
 
 void map() {
