@@ -68,7 +68,7 @@ void youwon();
 void GenderName(player_t * player);
 void printStatus(player_t * player);
 void backpack (player_t * player);
-void potions(player_t* player);
+char potions(player_t* player);
 void potionsPictures(player_t * player);
 void pikachuBack(float hp, float hpFull, char* name);
 void gengar(float hp, float hpFull, char* name);
@@ -82,6 +82,9 @@ void playOnline(player_t * player);
 void battleOnline(player_t * player, int connection_fd);
 void battleDefend(player_t * player, player_t * opponent, int connection_fd, float full_HP, float opponent_full_HP);
 void battleAttack(player_t * player, player_t * opponent, int connection_fd, float full_HP, float opponent_full_HP);
+void checkOpAction(char action, float attack, player_t * player);
+void checkAction(char action, float attack, player_t * opponent);
+
 
 int main(int argC, char *argV[])
 {
@@ -90,7 +93,7 @@ int main(int argC, char *argV[])
 
     // Definition of the files of the players that are saved
     char* filePlayerSaved = "SavedFiles/player.txt";
-    char* filePokemonSaved = "SavedFiles/player.txt";
+    char* filePokemonSaved = "SavedFiles/pokemon.txt";
 
     // Allocate memory for the pokemon struct that the player have
     player.pokemon = malloc(sizeof (pokemon_t));
@@ -102,6 +105,7 @@ int main(int argC, char *argV[])
     while ((savedProgress != 1)&&(savedProgress != 2)) {
         printf("\tOption: ");
         scanf("%d", &savedProgress);
+        getchar();
         switch(savedProgress) {
             case 1:
                 read_player(filePlayerSaved, &player);
@@ -174,6 +178,7 @@ void introduction(player_t * player)
     printf("\n\nHello my name is Profesor Elm...\n");
     printf("¿What is your name?\n\t Name: ");
     scanf("%s", player->name);
+    getchar();
     GenderName(player);
 
     usleep(1000000);
@@ -184,6 +189,7 @@ void introduction(player_t * player)
         printf("\n1.-Pikachu | 2.-Charizard | 3.-Gengar | 4.-Zapdos | 5.-Mew \n");
         printf("\tOption: ");
         scanf("%d", &pokemonOption);
+        getchar();
         switch (pokemonOption) {
             case 1:
                 strcat(filePokemon, "Pikachu.txt");
@@ -242,6 +248,7 @@ void GenderName(player_t * player)
         genders();
         printf("\nChose an option : ");
         scanf("%d", &gender);
+        getchar();
         switch(gender) {
             case 1:
                 printf("\nPerfect then, you will be him: \n\n");
@@ -276,7 +283,7 @@ void loop_Mainmenu(player_t * player)
 {
     int option = 1;
     char* filePlayerSaved = "SavedFiles/player.txt";
-	char* filePokemonSaved = "SavedFiles/pokemon.txt";
+    char* filePokemonSaved = "SavedFiles/pokemon.txt";
 
     while (option != 0) {
         printf("\n-------------------------------------------------------------------------------");
@@ -289,7 +296,7 @@ void loop_Mainmenu(player_t * player)
         printf("\t0. Quit the game\n\n");
         printf("Select a option : ");
         scanf("%d", &option);
-
+        getchar();
         switch (option) {
             case 1:
                 select_stage(player);
@@ -321,6 +328,7 @@ void loop_Mainmenu(player_t * player)
                 printf("\nHave you already saved your game? { Yes: 0 | No: 1 }\n");
                 printf("\tOption: ");
                 scanf("%d", &option);
+                getchar();
             break;
 
             default:
@@ -352,6 +360,7 @@ void select_stage(player_t * player)
         map();
         printf("\nWhich stage do you want to enter? { 1 | 2 | 3 | 4 } \n\t If you want to return to the main menu { 0 }\n\n Option : ");
         scanf("%d", &stage);
+        getchar();
         switch(stage) {
             case 1:
                 player->stages[0] = fight(player, &gengar, stage);
@@ -408,7 +417,7 @@ int fight(player_t * player, pokemon_t * opponent, int stage)
 
     printf("\n\nAre you ready to battle? { Yes: 1 | No: 0 }\n\tAnswer : ");
     scanf("%d", &fightChoice);
-
+    getchar();
     while (fightChoice != 0) {
         if (stage == 1)
             gengar(opponent->HP, opponentHpFull, opponent->name);
@@ -423,7 +432,7 @@ int fight(player_t * player, pokemon_t * opponent, int stage)
         srand(time(NULL));
 
         scanf("%d", &fightChoice);
-
+        getchar();
         switch(fightChoice) {
             case 1:
                 attack(player, opponent, player->pokemon->attack1);
@@ -441,6 +450,7 @@ int fight(player_t * player, pokemon_t * opponent, int stage)
                 printf("If you exit the battle you'll be returned to the main menu\nand all progress of the battle will be lost.\n");
                 printf("Are you sure you want to run away? YES : 0 | NO : 1 \n");
                 scanf("%d", &fightChoice);
+                getchar();
                 player->pokemon->HP = 0;
             break;
 
@@ -464,20 +474,19 @@ int fight(player_t * player, pokemon_t * opponent, int stage)
   return 0;
 }
 
-void attack(player_t * player, pokemon_t * opponent, float attack)
-{
+void attack(player_t * player, pokemon_t * opponent, float attack){
     int probabilityPlayer = rand() % 100 + 1;
     float playerAttack = (player->pokemon->MP * attack);
 
     int opponentAttack = rand() % 2 + 1;
     int probabilityOpponent = rand() % 100 + 1;
-	float opponentAttack1 = opponent->MP * opponent->attack1;
+    float opponentAttack1 = opponent->MP * opponent->attack1;
     float opponentAttack2 = opponent->MP * opponent->attack2;
 
     if (probabilityPlayer <= player->pokemon->attack_percent) {
-        opponent->HP -= playerAttack;
-		printf("\nYou take %.0f of his HP!\n", playerAttack );
-	} else {
+      opponent->HP -= playerAttack;
+	    printf("\nYou take %.0f of his HP!\n", playerAttack );
+	   } else {
         printf("\nYour attack has failed\n");
     }
 
@@ -510,7 +519,7 @@ void backpack (player_t * player){
 
         switch(bp) {
             case '1':
-                map();
+            map();
             break;
 
           case '2':
@@ -564,7 +573,7 @@ void playOnline(player_t * player){
   connection_fd = connectSocket("127.0.0.1", "8989");
   if (connection_fd ){
     // Send my data
-    sprintf(buffer, "%s %s %f %d %f %f %d", player->name, player->pokemon->name, player->pokemon->HP, player->pokemon->MP, player->pokemon->attack1, player->pokemon->attack2, player->pokemon->attack_percent);
+    sprintf(buffer, "%s %s %f %d %f %f %d %d %d %d", player->name, player->pokemon->name, player->pokemon->HP, player->pokemon->MP, player->pokemon->attack1, player->pokemon->attack2, player->pokemon->attack_percent, player->potions[0],  player->potions[1],  player->potions[2]);
   }
   sendString(connection_fd, buffer);
   // RECV
@@ -584,12 +593,11 @@ void battleOnline(player_t * player, int connection_fd){
   float full_HP = player->pokemon->HP;
   player_t  opponent;
   opponent.pokemon = malloc(sizeof (pokemon_t));
-  char opponent_name[15];
   //Get opponent data
   sprintf(buffer, "OPPONENT");
   sendString(connection_fd, buffer);
   getMessage(connection_fd, buffer, BUFFER_SIZE);
-  sscanf(buffer, "%s %s %f %d %f %f %d", opponent.name,  opponent.pokemon->name, &opponent.pokemon->HP, &opponent.pokemon->MP, &opponent.pokemon->attack1, &opponent.pokemon->attack2, &opponent.pokemon->attack_percent);
+  sscanf(buffer, "%s %s %f %d %f %f %d %d %d %d", opponent.name,  opponent.pokemon->name, &opponent.pokemon->HP, &opponent.pokemon->MP, &opponent.pokemon->attack1, &opponent.pokemon->attack2, &opponent.pokemon->attack_percent, &opponent.potions[0], &opponent.potions[1], &opponent.potions[2]);
   float opponent_full_HP = opponent.pokemon->HP;
   sprintf(buffer, "READY");
   sendString(connection_fd, buffer);
@@ -609,94 +617,145 @@ void battleAttack(player_t * player, player_t * opponent, int connection_fd, flo
   float attack;
   char action;
   char buffer[BUFFER_SIZE];
+  int again = 1;
   gengar(opponent->pokemon->HP,  opponent_full_HP, opponent->pokemon->name);
   pikachuBack(player->pokemon->HP, full_HP, player->pokemon->name);
   //scanf(" %c", &action);
   action = getchar();
   getchar();
+  while(again){
+  switch(action) {
+    case '1':
+      again = 0;
+      break;
+
+    case '2':
+      again = 0;
+      break;
+
+    case '3':
+      action = potions(player);
+      printf("ation %c", action);
+      if (action != '0')
+        again = 0;
+      else
+        again = 1;
+      break;
+
+    case '0':
+      sprintf(buffer, "END");
+      sendString(connection_fd, buffer);
+      exit(0);
+      break;
+
+    default:
+      printf("Invalid option, please try again.\n");
+      action = getchar();
+      getchar();
+      break;
+    }
+  }
   sprintf(buffer, "%c", action);
   sendString(connection_fd, buffer);
   //recibo el resultado
   getMessage(connection_fd, buffer, BUFFER_SIZE);
-  sscanf(buffer, "%f %f %f", &attack, &player->pokemon->HP, &opponent->pokemon->HP);
-  if (attack > 0){
-   printf("\n=================================\nYou Take %f of his HP\n=================================\n", attack);
- } else {
-    printf("\n##################\nYour attack has failed\n##################\n");
-  }
-  if (opponent->pokemon->HP <= 0)
-    printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE WON\n!!!!!!!!!!!!!!!!!!!!!\n");
+  sscanf(buffer, "%c %f %f %f", &action, &attack, &player->pokemon->HP, &opponent->pokemon->HP);
+  checkAction(action, attack, opponent);
 }
 
+void checkAction(char action, float attack, player_t * opponent){
+  if(action == '1' || action == '2'){
+    if (attack > 0){
+     printf("\n=================================\nYou Take %f of his HP\n=================================\n", attack);
+    } else {
+      printf("\n##################\nYour attack has failed\n##################\n");
+    }
+    if (opponent->pokemon->HP <= 0)
+      printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE WON\n!!!!!!!!!!!!!!!!!!!!!\n");
+  }
+}
 //No esta acabada
 void battleDefend(player_t * player, player_t * opponent, int connection_fd,  float full_HP, float opponent_full_HP){
   float attack;
   char buffer[BUFFER_SIZE];
+  char action;
   //recibo el resultado del ataque del oponente
   sprintf(buffer, "WAITING");
   sendString(connection_fd, buffer);
   printf("Waiting for player attack\n");
   getMessage(connection_fd, buffer, BUFFER_SIZE);
-  sscanf(buffer, "%f %f %f", &attack, &player->pokemon->HP, & opponent->pokemon->HP);
-  if (attack > 0){
-   printf("\n""""""""""""""""""""""""""""""\nHe Takes %f of your HP\n""""""""""""""""""""""""""""""\n", attack);
- }else{
-    printf("\n!!!!!!!!!!!!!!!!!!!!!\nHis attack has failed\n!!!!!!!!!!!!!!!!!!!!!\n");
-  }
-  if (player->pokemon->HP <= 0)
-    printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE LOST\n!!!!!!!!!!!!!!!!!!!!!\n");
+  sscanf(buffer, "%c %f %f %f", &action, &attack, &player->pokemon->HP, & opponent->pokemon->HP);
+  checkOpAction(action, attack, player);
 }
 
-void potions(player_t * player){
-  char potion = '1';
-  while (potion != '0'){
-    potionsPictures(player);
-    printf("Go out : 0\n\tWhat potion do you want %s? : ", player->name);
-    potion = getchar();
-    getchar();
-
-    switch (potion) {
-      case '1':
-        if(player->potions[0] > 0) {
-          printf("\nThis is your HP before using the potion: %.0f", player->pokemon->HP);
-          player->pokemon->HP += 30;
-          player->potions[0]--;
-          printf("\nThis is your HP after using the potion: %.0f\n", player->pokemon->HP);
-        } else {
-          printf("\nYou don't have any potions left\n\n");
-        }
-        break;
-
-      case '2':
-        if(player->potions[1] > 0) {
-          printf("\nThis is your MP before using the potion: %d", player->pokemon->MP);
-          player->pokemon->MP += 5;
-          player->potions[1]--;
-          printf("\nThis is your MP after using the potion: %d\n",player->pokemon->MP);
-        } else {
-          printf("\nYou don't have any potions left\n\n");
-        }
-        break;
-
-      case '3':
-        if(player->potions[2] > 0) {
-          printf("\nThis is your Attack%% before using the potion: %d%% ", player->pokemon->attack_percent);
-          player->pokemon->attack_percent += 5;
-          player->potions[2]--;
-          printf("\nThis is your Attack%% after using the potion: %d%%\n", player->pokemon->attack_percent);
-        } else {
-          printf("\nYou don't have any potions left\n\n");
-        }
-        break;
-
-      case '0':
-        break;
-
-      default:
-        printf("Invalid option, please try again.\n");
-        break;
+void checkOpAction(char action, float attack, player_t * player){
+  if(action == '1' || action == '2'){
+    if (attack > 0){
+     printf("\n""""""""""""""""""""""""""""""\nHe Takes %f of your HP\n""""""""""""""""""""""""""""""\n", attack);
+    }else{
+      printf("\n!!!!!!!!!!!!!!!!!!!!!\nHis attack has failed\n!!!!!!!!!!!!!!!!!!!!!\n");
     }
+    if (player->pokemon->HP <= 0)
+      printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE LOST\n!!!!!!!!!!!!!!!!!!!!!\n");
+    }
+  else if(action == '3' || action =='4' || action =='5')
+    printf("\n!!!!!!!!!!!!!!!!!!!!!\nYour opponent has taken a potion\n!!!!!!!!!!!!!!!!!!!!!\n");
+}
+
+char potions(player_t * player){
+  char potion;
+  potionsPictures(player);
+  printf("Go out : 0\n\tWhat potion do you want %s? : ", player->name);
+  potion = getchar();
+  getchar();
+
+  switch (potion) {
+    case '1':
+      if(player->potions[0] > 0) {
+        printf("\nThis is your HP before using the potion: %.0f", player->pokemon->HP);
+        player->pokemon->HP += 30;
+        player->potions[0]--;
+        printf("\nThis is your HP after using the potion: %.0f\n", player->pokemon->HP);
+        return '3';
+      } else {
+        printf("\nYou don't have any potions left\n\n");
+      }
+      break;
+
+    case '2':
+      if(player->potions[1] > 0) {
+        printf("\nThis is your MP before using the potion: %d", player->pokemon->MP);
+        player->pokemon->MP += 5;
+        player->potions[1]--;
+        printf("\nThis is your MP after using the potion: %d\n",player->pokemon->MP);
+        return '4';
+      } else {
+        printf("\nYou don't have any potions left\n\n");
+      }
+      break;
+
+    case '3':
+      if(player->potions[2] > 0) {
+        printf("\nThis is your Attack%% before using the potion: %d%% ", player->pokemon->attack_percent);
+        player->pokemon->attack_percent += 5;
+        player->potions[2]--;
+        printf("\nThis is your Attack%% after using the potion: %d%%\n", player->pokemon->attack_percent);
+        return '5';
+      } else {
+        printf("\nYou don't have any potions left\n\n");
+      }
+      break;
+
+    case '0':
+      return '0';
+      break;
+
+    default:
+      printf("Invalid option, please try again.\n");
+      return '0';
+      break;
   }
+  return '0';
 }
 
 int write_file(char* filename, player_t* player){

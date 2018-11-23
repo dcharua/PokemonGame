@@ -31,6 +31,7 @@
 ///// Structure definitions
 int interrupted = 0;
 int turn = 1;
+char action;
 float attack_points;
 pthread_cond_t player1_turn = PTHREAD_COND_INITIALIZER;
 pthread_cond_t player2_turn = PTHREAD_COND_INITIALIZER;
@@ -83,8 +84,8 @@ void getPlayerData(thread_data_t * connection_data);
 void battle(thread_data_t * connection_data);
 void sendData(thread_data_t * connection_data);
 void reciveAttack(thread_data_t *connection_data);
-void attack(thread_data_t * connection_data, char action);
-void potion(thread_data_t * connection_data, char action);
+void attack(thread_data_t * connection_data);
+void potion(thread_data_t * connection_data);
 void closeGame(player_t * player1, player_t * player2, locks_t * data_locks);
 void catchInterrupt(int signal);
 
@@ -268,8 +269,8 @@ void getPlayerData(thread_data_t * connection_data){
   //if player one is not online, new player is player 1
   if(connection_data->player1->online == 0){
     //get data from the player, set player online and send WAIT signal
-    sscanf(buffer, "%s %s %f %d %f %f %d", connection_data->player1->name, connection_data->player1->pokemon->name, &connection_data->player1->pokemon->HP, &connection_data->player1->pokemon->MP, &connection_data->player1->pokemon->attack1, &connection_data->player1->pokemon->attack2, &connection_data->player1->pokemon->attack_percent);
-    printf("Player data: %s %s %f %d %f %f %d\n", connection_data->player1->name, connection_data->player1->pokemon->name, connection_data->player1->pokemon->HP, connection_data->player1->pokemon->MP, connection_data->player1->pokemon->attack1, connection_data->player1->pokemon->attack2, connection_data->player1->pokemon->attack_percent);
+    sscanf(buffer, "%s %s %f %d %f %f %d %d %d %d", connection_data->player1->name, connection_data->player1->pokemon->name, &connection_data->player1->pokemon->HP, &connection_data->player1->pokemon->MP, &connection_data->player1->pokemon->attack1, &connection_data->player1->pokemon->attack2, &connection_data->player1->pokemon->attack_percent, &connection_data->player1->potions[0], &connection_data->player1->potions[1], &connection_data->player1->potions[2]);
+    printf("Player data: %s %s %f %d %f %f %d %d %d %d\n", connection_data->player1->name, connection_data->player1->pokemon->name, connection_data->player1->pokemon->HP, connection_data->player1->pokemon->MP, connection_data->player1->pokemon->attack1, connection_data->player1->pokemon->attack2, connection_data->player1->pokemon->attack_percent, connection_data->player1->potions[0], connection_data->player1->potions[1], connection_data->player1->potions[2]);
     connection_data->player1->online = 1;
     sprintf(buffer, "WAIT");
     sendString(connection_data->connection_fd, buffer);
@@ -281,7 +282,7 @@ void getPlayerData(thread_data_t * connection_data){
     connection_data->player1->ready = 1;
   } else { //Player 1 is already online, new player is player 2
     // get data from the player and send set player online and send PLAY signal and set ready
-    sscanf(buffer, "%s %s %f %d %f %f %d", connection_data->player2->name, connection_data->player2->pokemon->name, &connection_data->player2->pokemon->HP, &connection_data->player2->pokemon->MP, &connection_data->player2->pokemon->attack1, &connection_data->player2->pokemon->attack2, &connection_data->player2->pokemon->attack_percent);
+    sscanf(buffer, "%s %s %f %d %f %f %d %d %d %d ", connection_data->player2->name, connection_data->player2->pokemon->name, &connection_data->player2->pokemon->HP, &connection_data->player2->pokemon->MP, &connection_data->player2->pokemon->attack1, &connection_data->player2->pokemon->attack2, &connection_data->player2->pokemon->attack_percent, &connection_data->player2->potions[0], &connection_data->player2->potions[1], &connection_data->player2->potions[2]);
     connection_data->player2->online = 1;
     sprintf(buffer, "PLAY");
     sendString(connection_data->connection_fd, buffer);
@@ -298,7 +299,7 @@ void battle(thread_data_t * connection_data){
     //get OPPONET request form player and send opponent data
     getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
     if(strncmp(buffer, "OPPONENT", 8) == 0){
-      sprintf(buffer, "%s %s %f %d %f %f %d", connection_data->player2->name, connection_data->player2->pokemon->name, connection_data->player2->pokemon->HP, connection_data->player2->pokemon->MP, connection_data->player2->pokemon->attack1, connection_data->player2->pokemon->attack2, connection_data->player2->pokemon->attack_percent);
+      sprintf(buffer, "%s %s %f %d %f %f %d %d %d %d", connection_data->player2->name, connection_data->player2->pokemon->name, connection_data->player2->pokemon->HP, connection_data->player2->pokemon->MP, connection_data->player2->pokemon->attack1, connection_data->player2->pokemon->attack2, connection_data->player2->pokemon->attack_percent, connection_data->player2->potions[0], connection_data->player2->potions[1], connection_data->player2->potions[2]);
       sendString(connection_data->connection_fd, buffer);
     }
     //get READY form player and start the battle
@@ -317,26 +318,27 @@ void battle(thread_data_t * connection_data){
           sendData(connection_data);
           turn = 2;
         pthread_mutex_unlock(&connection_data->data_locks->attack_mutex);
-
-        pthread_mutex_lock(&connection_data->data_locks->wait_mutex);
-          //Now player 1 waits from player's 1 attack
-          sprintf(buffer, "WAIT");
-          sendString(connection_data->connection_fd, buffer);
-          //wait until player 2 send the attack
-          getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
-          printf("turn %d\n", turn );
-          while(turn == 2){}
-          printf("player 1 done waitig now turn 1\n");
-          //send the result of player's 2 attack to player 1
-          sendData(connection_data);
-        pthread_mutex_unlock(&connection_data->data_locks->wait_mutex);
+        if(connection_data->player1->pokemon->HP > 0 && connection_data->player2->pokemon->HP > 0){
+          pthread_mutex_lock(&connection_data->data_locks->wait_mutex);
+            //Now player 1 waits from player's 1 attack
+            sprintf(buffer, "WAIT");
+            sendString(connection_data->connection_fd, buffer);
+            //wait until player 2 send the attack
+            getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
+            printf("turn %d\n", turn );
+            while(turn == 2){}
+            printf("player 1 done waitig now turn 1\n");
+            //send the result of player's 2 attack to player 1
+            sendData(connection_data);
+          pthread_mutex_unlock(&connection_data->data_locks->wait_mutex);
+        }
       }
     }
   } else if (connection_data->player_id==2){
     // if its player 2 get OPPNONENT data request and send it
     getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
     if(strncmp(buffer, "OPPONENT", 8) == 0){
-      sprintf(buffer, "%s %s %f %d %f %f %d", connection_data->player1->name, connection_data->player1->pokemon->name, connection_data->player1->pokemon->HP, connection_data->player1->pokemon->MP, connection_data->player1->pokemon->attack1, connection_data->player1->pokemon->attack2, connection_data->player1->pokemon->attack_percent);
+      sprintf(buffer, "%s %s %f %d %f %f %d %d %d %d", connection_data->player1->name, connection_data->player1->pokemon->name, connection_data->player1->pokemon->HP, connection_data->player1->pokemon->MP, connection_data->player1->pokemon->attack1, connection_data->player1->pokemon->attack2, connection_data->player1->pokemon->attack_percent,  connection_data->player1->potions[0],  connection_data->player1->potions[1], connection_data->player1->potions[2]);
       sendString(connection_data->connection_fd, buffer);
     }
     //Get READY signal
@@ -359,6 +361,7 @@ void battle(thread_data_t * connection_data){
           sendData(connection_data);
         pthread_mutex_unlock(&connection_data->data_locks->wait_mutex);
 
+        if(connection_data->player1->pokemon->HP > 0 && connection_data->player2->pokemon->HP > 0){
         pthread_mutex_lock(&connection_data->data_locks->attack_mutex);
           //now its player's 2 turn
           sprintf(buffer, "TURN");
@@ -370,8 +373,7 @@ void battle(thread_data_t * connection_data){
           sendData(connection_data);
           turn = 1;
         pthread_mutex_unlock(&connection_data->data_locks->attack_mutex);
-
-
+        }
       }
     }
   }
@@ -385,7 +387,7 @@ void sendData(thread_data_t * connection_data){
   if(connection_data->player_id==1){
     if (connection_data->player2->online == 1){
     printf("sending data player1\n");
-    sprintf(buffer, "%f %f %f",  attack_points, connection_data->player1->pokemon->HP, connection_data->player2->pokemon->HP);
+    sprintf(buffer, "%c %f %f %f", action, attack_points, connection_data->player1->pokemon->HP, connection_data->player2->pokemon->HP);
     sendString(connection_data->connection_fd, buffer);
     }else{
       sprintf(buffer, "END");
@@ -394,7 +396,7 @@ void sendData(thread_data_t * connection_data){
   } else if (connection_data->player_id==2){
     if (connection_data->player1->online == 1){
       printf("sending data player 2\n");
-      sprintf(buffer, "%f %f %f", attack_points, connection_data->player2->pokemon->HP, connection_data->player1->pokemon->HP);
+      sprintf(buffer, "%c %f %f %f", action, attack_points, connection_data->player2->pokemon->HP, connection_data->player1->pokemon->HP);
       sendString(connection_data->connection_fd, buffer);
     } else{
       sprintf(buffer, "END");
@@ -405,17 +407,16 @@ void sendData(thread_data_t * connection_data){
 
 void reciveAttack(thread_data_t *connection_data){
   char buffer[BUFFER_SIZE];
-  char action;
   getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
   sscanf(buffer, "%c", &action);
   printf("action %c\n", action);
   if (action == '1' || action == '2')
-    attack(connection_data, action);
+    attack(connection_data);
   if (action == '3' || action == '4' || action == '5')
-    potion(connection_data, action);
+    potion(connection_data);
 }
 
-void attack(thread_data_t * connection_data, char action){
+void attack(thread_data_t * connection_data){
 	int prob = rand() % 100 + 1;
   if(connection_data->player_id==1){
     //pthread_mutex_lock(&connection_data->data_locks->attack_mutex);
@@ -452,7 +453,7 @@ void attack(thread_data_t * connection_data, char action){
   }
 }
 
-void potion(thread_data_t * connection_data, char action){
+void potion(thread_data_t * connection_data){
   if(connection_data->player_id==1){
     if (action == '3'){
       connection_data->player1->pokemon->HP += 30;
