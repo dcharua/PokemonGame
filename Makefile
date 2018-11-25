@@ -5,7 +5,7 @@
 # The files that must be compiled, with a .o extension
 OBJECTS = sockets.o fatal_error.o
 # The header files
-DEPENDS = sockets.h fatal_error.h 
+DEPENDS = sockets.h fatal_error.h prints.h
 # The executable programs to be created
 CLIENT = player
 #CLIENT = pi_client

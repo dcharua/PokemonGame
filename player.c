@@ -1,51 +1,51 @@
-// Basic libraries
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+// Custom libraries
+#include "prints.h"
+#include "sockets.h"
 
+// Library for the wait
 #include <unistd.h>
 
 // Sockets libraries
 #include <netdb.h>
 #include <arpa/inet.h>
 
-// Custom libraries
-#include "sockets.h"
-
 // Definition of the size of the buffer that we are
 // going to use for the communication
 #define BUFFER_SIZE 1024
 
 // Structure of the pokemon attributes
-typedef struct pokemon{
-  char name[10];
-  float HP;
-  int MP;
-  float attack1;
-  float attack2;
-  int attack_percent;
+typedef struct pokemon {
+    char name[10];
+    float HP;
+    int MP;
+    float attack1;
+    float attack2;
+    int attack_percent;
 } pokemon_t;
 
 // Structure of the player attributes
-typedef struct player{
-  char name[10];
-  int gender;
-  int potions[3];
-  int stages[4];
-  pokemon_t * pokemon;
+typedef struct player {
+    char name[10];
+    int gender;
+    int potions[3];
+    int stages[4];
+    pokemon_t * pokemon;
 } player_t;
-
 
 // DEFINITION OF THE FUNCTIONS
 
 // Functions that read files
-int read_pokemon(char* filename, pokemon_t* pokemon);
-int read_player(char* filename, player_t* player);
+void read_pokemon(char* filename, pokemon_t* pokemon);
+void read_player(char* filename, player_t* player);
 
 // Initial functions
 void loop_Mainmenu(player_t * player);
 void introduction(player_t * player);
+void GenderName(player_t * player);
+void printStatus(player_t * player);
+void backpack (player_t * player);
+char potions(player_t* player);
+void potionsPictures(player_t * player);
 
 // Fight functions
 void select_stage(player_t * player);
@@ -53,29 +53,8 @@ int fight(player_t * player, pokemon_t * opponent, int stage);
 void attack(player_t * player, pokemon_t * opponent, float attack);
 
 // Functions that write files
-int write_file(char* filename, player_t* player);
-int write_pokemon(char* filename, player_t * player);
-
-// Functions that print without arguments
-void genders();
-void male();
-void female();
-void pikachufront();
-void map();
-void youwon();
-
-// Functions that print with parameters
-void GenderName(player_t * player);
-void printStatus(player_t * player);
-void backpack (player_t * player);
-char potions(player_t* player);
-void potionsPictures(player_t * player);
-void pikachuBack(float hp, float hpFull, char* name);
-void gengar(float hp, float hpFull, char* name);
-void charizard(float hp, float hpFull, char* name);
-void zapdos(float hp, float hpFull, char* name);
-void mew(float hp, float hpFull, char* name);
-
+void write_file(char* filename, player_t* player);
+void write_pokemon(char* filename, player_t * player);
 
 // Online game
 void playOnline(player_t * player);
@@ -124,18 +103,16 @@ int main(int argC, char *argV[])
 
     loop_Mainmenu(&player);
 
-  return 0;
+    return 0;
 }
 
-int read_pokemon(char* filename, pokemon_t* pokemon)
+void read_pokemon(char* filename, pokemon_t* pokemon)
 {
     FILE* filePtr;
     filePtr = fopen(filename, "r");
 
-    if (filePtr == NULL) {
+    if (filePtr == NULL)
         printf("Could not open file '%s' for reading.\n", filename);
-        return 1;
-    }
 
     fscanf(filePtr, " %s", pokemon->name);
     fscanf(filePtr, " %f", &pokemon->HP);
@@ -145,14 +122,13 @@ int read_pokemon(char* filename, pokemon_t* pokemon)
     fscanf(filePtr, " %d", &pokemon->attack_percent);
 
     fclose(filePtr);
-    return 0;
 }
 
-int read_player(char* filename, player_t* player)
+void read_player(char* filename, player_t* player)
 {
+    int i = 0;
 	FILE* filePtr;
 	filePtr = fopen(filename, "r");
-	int i = 0;
 
 	if (filePtr == NULL)
 		printf("Could not open file '%s' for reading.\n", filename);
@@ -167,7 +143,6 @@ int read_player(char* filename, player_t* player)
         fscanf(filePtr, " %d", &player->stages[i]);
 
 	fclose(filePtr);
-	return 0;
 }
 
 void introduction(player_t * player)
@@ -321,7 +296,7 @@ void loop_Mainmenu(player_t * player)
             case 5:
       		    write_file(filePlayerSaved, player);
       			write_pokemon(filePokemonSaved, player);
-      			printf("\n\n\tCongratulations . . . You already saved the game\n\n");
+      			printf("\n\n\tCongratulations . . . You have successfully saved the game\n\n");
             break;
 
             case 0:
@@ -474,7 +449,8 @@ int fight(player_t * player, pokemon_t * opponent, int stage)
   return 0;
 }
 
-void attack(player_t * player, pokemon_t * opponent, float attack){
+void attack(player_t * player, pokemon_t * opponent, float attack)
+{
     int probabilityPlayer = rand() % 100 + 1;
     float playerAttack = (player->pokemon->MP * attack);
 
@@ -503,10 +479,11 @@ void attack(player_t * player, pokemon_t * opponent, float attack){
     }
 }
 
-void backpack (player_t * player){
-    char bp = '1';
+void backpack (player_t * player)
+{
+    int option = 1;
 
-    while (bp != 0){
+    while (option != 0) {
         printf("\n-----------------------------------------------------------------------------");
         printf("\n\t\t\t\tWelcome to your backpack %s!\n\n", player->name);
         printf("\t1. View Map. \n");
@@ -514,31 +491,31 @@ void backpack (player_t * player){
         printf("\t3. Check my pokemon stats. \n");
         printf("\t0. Exit Backpack. \n\n");
         printf("Enter an option from above: ");
-        bp = getchar();
+        scanf("%d", &option);
         getchar();
 
-        switch(bp) {
-            case '1':
-            map();
+        switch(option) {
+            case 1:
+                map();
             break;
 
-          case '2':
-            potions(player);
+            case 2:
+                potions(player);
             break;
 
-          case '3':
-            pikachufront();
-            printStatus(player);
+            case 3:
+                pikachufront();
+                printStatus(player);
             break;
 
-          case '0':
+            case 0:
             break;
 
-          default:
-            printf("Invalid option, please try again.\n");
+            default:
+                printf("Invalid option, please try again.\n");
             break;
         }
-  }
+    }
 }
 
 void printStatus(player_t * player)
@@ -551,216 +528,226 @@ void printStatus(player_t * player)
     printf("\t\t\tAtt%%:   %d\n", player->pokemon->attack_percent);
 }
 
+char potions(player_t * player)
+{
+    int potion;
+    char response = '0';
 
+    potionsPictures(player);
+    printf("Go out : 0\n\tWhich potion do you want %s? : ", player->name);
+    scanf("%d", &potion);
+    getchar();
 
-void HP(float hpFight, float hpFull){
-  float percent, percent2;
-  percent2 = 50/hpFull;
-  percent = percent2*hpFight;
+    switch (potion) {
+        case 1:
+            if (player->potions[0] > 0) {
+                printf("\nThis is your HP before using the potion: %.0f", player->pokemon->HP);
+                player->pokemon->HP += 30;
+                player->potions[0]--;
+                printf("\nThis is your HP after using the potion: %.0f\n", player->pokemon->HP);
+            } else {
+                printf("\nYou don't have any potions left\n\n");
+            }
+            response = '3';
+        break;
 
-  printf("HP: %.0f/%.0f ", hpFight, hpFull);
-  for(int i = 0; i < percent; i++)
-    printf("*");
-  printf("\n\n");
+        case 2:
+            if (player->potions[1] > 0) {
+                printf("\nThis is your MP before using the potion: %d", player->pokemon->MP);
+                player->pokemon->MP += 5;
+                player->potions[1]--;
+                printf("\nThis is your MP after using the potion: %d\n",player->pokemon->MP);
+            } else {
+                printf("\nYou don't have any potions left\n\n");
+            }
+            response = '4';
+        break;
+
+        case 3:
+            if (player->potions[2] > 0) {
+                printf("\nThis is your Attack%% before using the potion: %d%% ", player->pokemon->attack_percent);
+                player->pokemon->attack_percent += 5;
+                player->potions[2]--;
+                printf("\nThis is your Attack%% after using the potion: %d%%\n", player->pokemon->attack_percent);
+            } else {
+                printf("\nYou don't have any potions left\n\n");
+            }
+            response = '5';
+        break;
+
+        case 0:
+        break;
+
+        default:
+            printf("Invalid option, please try again.\n");
+        break;
+    }
+
+    return response;
 }
 
-void playOnline(player_t * player){
-  char address[20];
-  char port[4];
-  char buffer[BUFFER_SIZE];
-  int connection_fd = 0;
-  // Start the server
-  connection_fd = connectSocket("127.0.0.1", "8989");
-  if (connection_fd ){
-    // Send my data
-    sprintf(buffer, "%s %s %f %d %f %f %d %d %d %d", player->name, player->pokemon->name, player->pokemon->HP, player->pokemon->MP, player->pokemon->attack1, player->pokemon->attack2, player->pokemon->attack_percent, player->potions[0],  player->potions[1],  player->potions[2]);
-  }
-  sendString(connection_fd, buffer);
-  // RECV
-  // Receive the response
-  getMessage(connection_fd, buffer, BUFFER_SIZE);
+void playOnline(player_t * player)
+{
+    //char address[20];
+    //char port[4];
+    char buffer[BUFFER_SIZE];
+    int connection_fd = 0;
 
-  if(strncmp(buffer, "WAIT", 4) == 0)
-    printf("Waiting for another player\n");
-  while ( strncmp(buffer, "PLAY", 4) != 0){
+    // Start the server
+    connection_fd = connectSocket("127.0.0.1", "8989");
+
+    if (connection_fd ){
+        // Send my data
+        sprintf(buffer, "%s %s %f %d %f %f %d %d %d %d", player->name, player->pokemon->name, player->pokemon->HP, player->pokemon->MP, player->pokemon->attack1, player->pokemon->attack2, player->pokemon->attack_percent, player->potions[0],  player->potions[1],  player->potions[2]);
+    }
+    sendString(connection_fd, buffer);
+
+    // RECV
+    // Receive the response
     getMessage(connection_fd, buffer, BUFFER_SIZE);
-  }
-  battleOnline(player, connection_fd);
+
+    if(strncmp(buffer, "WAIT", 4) == 0) {
+        printf("Waiting for another player\n");
+    }
+
+    while ( strncmp(buffer, "PLAY", 4) != 0) {
+        getMessage(connection_fd, buffer, BUFFER_SIZE);
+    }
+
+    battleOnline(player, connection_fd);
 }
 
-void battleOnline(player_t * player, int connection_fd){
-  char buffer[BUFFER_SIZE];
-  float full_HP = player->pokemon->HP;
-  player_t  opponent;
-  opponent.pokemon = malloc(sizeof (pokemon_t));
-  //Get opponent data
-  sprintf(buffer, "OPPONENT");
-  sendString(connection_fd, buffer);
-  getMessage(connection_fd, buffer, BUFFER_SIZE);
-  sscanf(buffer, "%s %s %f %d %f %f %d %d %d %d", opponent.name,  opponent.pokemon->name, &opponent.pokemon->HP, &opponent.pokemon->MP, &opponent.pokemon->attack1, &opponent.pokemon->attack2, &opponent.pokemon->attack_percent, &opponent.potions[0], &opponent.potions[1], &opponent.potions[2]);
-  float opponent_full_HP = opponent.pokemon->HP;
-  sprintf(buffer, "READY");
-  sendString(connection_fd, buffer);
-  //Battle Loop
-  printf("===== WELCOME TO THE COLISEUM =====\n");
-  while(strncmp(buffer, "END", 3) != 0){
+void battleOnline(player_t * player, int connection_fd)
+{
+    char buffer[BUFFER_SIZE];
+    float full_HP = player->pokemon->HP;
+    player_t opponent;
+    opponent.pokemon = malloc(sizeof (pokemon_t));
+
+    // Get opponent data
+    sprintf(buffer, "OPPONENT");
+    sendString(connection_fd, buffer);
     getMessage(connection_fd, buffer, BUFFER_SIZE);
-    if(strncmp(buffer, "TURN", 4) == 0)
-      battleAttack(player, &opponent, connection_fd, full_HP, opponent_full_HP);
+    sscanf(buffer, "%s %s %f %d %f %f %d %d %d %d", opponent.name,  opponent.pokemon->name, &opponent.pokemon->HP, &opponent.pokemon->MP, &opponent.pokemon->attack1, &opponent.pokemon->attack2, &opponent.pokemon->attack_percent, &opponent.potions[0], &opponent.potions[1], &opponent.potions[2]);
+    float opponent_full_HP = opponent.pokemon->HP;
+    sprintf(buffer, "READY");
+    sendString(connection_fd, buffer);
 
-    else if(strncmp(buffer, "WAIT", 4) == 0)
-      battleDefend(player, &opponent, connection_fd, full_HP, opponent_full_HP);
-  }
-}
-
-void battleAttack(player_t * player, player_t * opponent, int connection_fd, float full_HP, float opponent_full_HP){
-  float attack;
-  char action;
-  char buffer[BUFFER_SIZE];
-  int again = 1;
-  gengar(opponent->pokemon->HP,  opponent_full_HP, opponent->pokemon->name);
-  pikachuBack(player->pokemon->HP, full_HP, player->pokemon->name);
-  //scanf(" %c", &action);
-  action = getchar();
-  getchar();
-  while(again){
-  switch(action) {
-    case '1':
-      again = 0;
-      break;
-
-    case '2':
-      again = 0;
-      break;
-
-    case '3':
-      action = potions(player);
-      printf("ation %c", action);
-      if (action != '0')
-        again = 0;
-      else
-        again = 1;
-      break;
-
-    case '0':
-      sprintf(buffer, "END");
-      sendString(connection_fd, buffer);
-      exit(0);
-      break;
-
-    default:
-      printf("Invalid option, please try again.\n");
-      action = getchar();
-      getchar();
-      break;
+    // Battle Loop
+    printf("===== WELCOME TO THE COLISEUM =====\n");
+    while(strncmp(buffer, "END", 3) != 0) {
+        getMessage(connection_fd, buffer, BUFFER_SIZE);
+        if(strncmp(buffer, "TURN", 4) == 0) {
+            battleAttack(player, &opponent, connection_fd, full_HP, opponent_full_HP);
+        } else if(strncmp(buffer, "WAIT", 4) == 0) {
+            battleDefend(player, &opponent, connection_fd, full_HP, opponent_full_HP);
+        }
     }
-  }
-  sprintf(buffer, "%c", action);
-  sendString(connection_fd, buffer);
-  //recibo el resultado
-  getMessage(connection_fd, buffer, BUFFER_SIZE);
-  sscanf(buffer, "%c %f %f %f", &action, &attack, &player->pokemon->HP, &opponent->pokemon->HP);
-  checkAction(action, attack, opponent);
 }
 
-void checkAction(char action, float attack, player_t * opponent){
-  if(action == '1' || action == '2'){
-    if (attack > 0){
-     printf("\n=================================\nYou Take %f of his HP\n=================================\n", attack);
-    } else {
-      printf("\n##################\nYour attack has failed\n##################\n");
+void battleAttack(player_t * player, player_t * opponent, int connection_fd, float full_HP, float opponent_full_HP)
+{
+    float attack;
+    char action;
+    char buffer[BUFFER_SIZE];
+    int again = 1;
+    gengar(opponent->pokemon->HP,  opponent_full_HP, opponent->pokemon->name);
+    pikachuBack(player->pokemon->HP, full_HP, player->pokemon->name);
+    //scanf(" %c", &action);
+    action = getchar();
+    getchar();
+    while(again) {
+        switch(action) {
+            case '1':
+                again = 0;
+            break;
+
+            case '2':
+                again = 0;
+            break;
+
+            case '3':
+                action = potions(player);
+                printf("ation %c", action);
+                if (action != '0') {
+                    again = 0;
+                } else {
+                    again = 1;
+                }
+            break;
+
+            case '0':
+                sprintf(buffer, "END");
+                sendString(connection_fd, buffer);
+                exit(0);
+            break;
+
+            default:
+                printf("Invalid option, please try again.\n");
+                action = getchar();
+                getchar();
+            break;
+        }
     }
-    if (opponent->pokemon->HP <= 0)
-      printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE WON\n!!!!!!!!!!!!!!!!!!!!!\n");
-  }
-}
-//No esta acabada
-void battleDefend(player_t * player, player_t * opponent, int connection_fd,  float full_HP, float opponent_full_HP){
-  float attack;
-  char buffer[BUFFER_SIZE];
-  char action;
-  //recibo el resultado del ataque del oponente
-  sprintf(buffer, "WAITING");
-  sendString(connection_fd, buffer);
-  printf("Waiting for player attack\n");
-  getMessage(connection_fd, buffer, BUFFER_SIZE);
-  sscanf(buffer, "%c %f %f %f", &action, &attack, &player->pokemon->HP, & opponent->pokemon->HP);
-  checkOpAction(action, attack, player);
+
+    sprintf(buffer, "%c", action);
+    sendString(connection_fd, buffer);
+
+    // Recibo el resultado
+    getMessage(connection_fd, buffer, BUFFER_SIZE);
+    sscanf(buffer, "%c %f %f %f", &action, &attack, &player->pokemon->HP, &opponent->pokemon->HP);
+    checkAction(action, attack, opponent);
 }
 
-void checkOpAction(char action, float attack, player_t * player){
-  if(action == '1' || action == '2'){
-    if (attack > 0){
-     printf("\n""""""""""""""""""""""""""""""\nHe Takes %f of your HP\n""""""""""""""""""""""""""""""\n", attack);
-    }else{
-      printf("\n!!!!!!!!!!!!!!!!!!!!!\nHis attack has failed\n!!!!!!!!!!!!!!!!!!!!!\n");
+void checkAction(char action, float attack, player_t * opponent)
+{
+    if(action == '1' || action == '2') {
+        if (attack > 0) {
+            printf("\n=================================\nYou Take %f of his HP\n=================================\n", attack);
+        } else {
+            printf("\n##################\nYour attack has failed\n##################\n");
+        }
+        if (opponent->pokemon->HP <= 0) {
+            printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE WON\n!!!!!!!!!!!!!!!!!!!!!\n");
+        }
     }
-    if (player->pokemon->HP <= 0)
-      printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE LOST\n!!!!!!!!!!!!!!!!!!!!!\n");
+}
+
+void battleDefend(player_t * player, player_t * opponent, int connection_fd,  float full_HP, float opponent_full_HP)
+{
+    float attack;
+    char buffer[BUFFER_SIZE];
+    char action;
+
+    // Recibo el resultado del ataque del oponente
+    sprintf(buffer, "WAITING");
+    sendString(connection_fd, buffer);
+    printf("Waiting for player attack\n");
+    getMessage(connection_fd, buffer, BUFFER_SIZE);
+    sscanf(buffer, "%c %f %f %f", &action, &attack, &player->pokemon->HP, & opponent->pokemon->HP);
+    checkOpAction(action, attack, player);
+}
+
+void checkOpAction(char action, float attack, player_t * player)
+{
+    if(action == '1' || action == '2'){
+        if (attack > 0){
+            printf("\n""""""""""""""""""""""""""""""\nHe Takes %f of your HP\n""""""""""""""""""""""""""""""\n", attack);
+        } else {
+            printf("\n!!!!!!!!!!!!!!!!!!!!!\nHis attack has failed\n!!!!!!!!!!!!!!!!!!!!!\n");
+        }
+        if (player->pokemon->HP <= 0) {
+            printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE LOST\n!!!!!!!!!!!!!!!!!!!!!\n");
+        }
+    } else if (action == '3' || action =='4' || action =='5') {
+        printf("\n!!!!!!!!!!!!!!!!!!!!!\nYour opponent has taken a potion\n!!!!!!!!!!!!!!!!!!!!!\n");
     }
-  else if(action == '3' || action =='4' || action =='5')
-    printf("\n!!!!!!!!!!!!!!!!!!!!!\nYour opponent has taken a potion\n!!!!!!!!!!!!!!!!!!!!!\n");
 }
 
-char potions(player_t * player){
-  char potion;
-  potionsPictures(player);
-  printf("Go out : 0\n\tWhat potion do you want %s? : ", player->name);
-  potion = getchar();
-  getchar();
-
-  switch (potion) {
-    case '1':
-      if(player->potions[0] > 0) {
-        printf("\nThis is your HP before using the potion: %.0f", player->pokemon->HP);
-        player->pokemon->HP += 30;
-        player->potions[0]--;
-        printf("\nThis is your HP after using the potion: %.0f\n", player->pokemon->HP);
-        return '3';
-      } else {
-        printf("\nYou don't have any potions left\n\n");
-      }
-      break;
-
-    case '2':
-      if(player->potions[1] > 0) {
-        printf("\nThis is your MP before using the potion: %d", player->pokemon->MP);
-        player->pokemon->MP += 5;
-        player->potions[1]--;
-        printf("\nThis is your MP after using the potion: %d\n",player->pokemon->MP);
-        return '4';
-      } else {
-        printf("\nYou don't have any potions left\n\n");
-      }
-      break;
-
-    case '3':
-      if(player->potions[2] > 0) {
-        printf("\nThis is your Attack%% before using the potion: %d%% ", player->pokemon->attack_percent);
-        player->pokemon->attack_percent += 5;
-        player->potions[2]--;
-        printf("\nThis is your Attack%% after using the potion: %d%%\n", player->pokemon->attack_percent);
-        return '5';
-      } else {
-        printf("\nYou don't have any potions left\n\n");
-      }
-      break;
-
-    case '0':
-      return '0';
-      break;
-
-    default:
-      printf("Invalid option, please try again.\n");
-      return '0';
-      break;
-  }
-  return '0';
-}
-
-int write_file(char* filename, player_t* player){
+void write_file(char* filename, player_t* player)
+{
+    int i;
 	FILE* filePtr;
-	int i;
 	filePtr = fopen(filename, "w");
 
 	if (filePtr == NULL)
@@ -775,12 +762,11 @@ int write_file(char* filename, player_t* player){
 	for (i = 0; i < 4; i++)
 		fprintf(filePtr, " %d", player->stages[i]);
 
-
 	fclose(filePtr);
-	return 0;
 }
 
-int write_pokemon(char* filename, player_t * player){
+void write_pokemon(char* filename, player_t * player)
+{
     FILE* filePtr;
 	filePtr = fopen(filename, "w");
 
@@ -795,52 +781,10 @@ int write_pokemon(char* filename, player_t * player){
 	fprintf(filePtr, " %d", player->pokemon->attack_percent);
 
 	fclose(filePtr);
-	return 0;
 }
 
-void map() {
-  printf("\n           ********  **  **        ***                  *          ****       ** *** \n");
-  printf("          *        **  **  **     * *          ****    * *        *    **    *  *  * \n");
-  printf("       ***                   **  * *         **    ** *   **    **       ** *    4  *\n");
-  printf("      *                        ** ****      *        *      * **           *    /  * \n");
-  printf("     *                                ******                 *                 /   * \n");
-  printf("    *          -------------------------2--%c                         --------/   *  \n",92);
-  printf("   *          /                        **   %c                       /           *   \n",92);
-  printf("  *          /                        *  *   %c                     /           *    \n",92);
-  printf(" *          /                        *    *   %c                   /            *    \n",92);
-  printf("*          /                        *     *    %c------%c         /             *    \n",92,92);
-  printf("*       1-/                        *       *           %c        /               *   \n",92);
-  printf("*                             *****         *     *      %c----3/             *****  \n",92);
-  printf(" *                 ****       *              *   * *                       ***       \n");
-  printf("  *               *    ***     *              ***   *                   ***          \n");
-  printf("   *             *        **    *                    **              ***             \n");
-  printf("    ****        *           **   *                     **          **                \n");
-  printf("        **     *              ** *                       ****    **                  \n");
-  printf("          *****                 *                            ****                    \n");
-}
-
-void pikachufront() {
-  printf("\n   88             88  \n");
-  printf("   888           888  \n");
-  printf("   8888         8888  \n");
-  printf("   8   8       8   8  \n");
-  printf("   8    8888888    8  \n");
-  printf("   88             88    \n");
-  printf("   88             88      77777\n");
-  printf("   8    O     O    8     7   7 \n");
-  printf("   8##     .     ##8   77  77  \n");
-  printf("    8##    _    ##8   7   7   \n");
-  printf("    88           88  7   7    \n");
-  printf("   88             887  7    \n");
-  printf("  8  /           %c  87      \n", 92);
-  printf("  8 /             %c 87       \n", 92);
-  printf("  8/               %c8        \n", 92);
-  printf("   888    8888    888         \n");
-  printf("  8   888888888888   8        \n");
-  printf("   88888        88888         \n");
-}
-
-void potionsPictures(player_t * player) {
+void potionsPictures(player_t * player)
+{
     printf("\n\n   Potion 1  \n\n");
     printf("     888     \n");
     printf("    88888    \n");
@@ -870,177 +814,4 @@ void potionsPictures(player_t * player) {
     printf("     888   \n");
     printf("     888   \n");
     printf("     888   \n\n\n");
-}
-
-void pikachuBack(float hp, float hpFull, char* name) {
-	printf("%s ", name);
-	HP(hp, hpFull);
-	printf(" 88888     8           8   \n");
-    printf("  88888    88         88   \n");
-    printf("   8   8   8 8       8 8   \n");
-    printf("    8   8  8  8888888  8   \n");
-    printf("   8   8   8       8   8   \n");
-    printf("  8   8    8            8  \n");
-    printf("   8  8   8              8 \n");
-    printf("    8 8   8             8           1. Thunder Bolt |  2. Electro Ball\n");
-    printf("    888  8            88            3. Backpack     |  0. Exit Battle\n");
-    printf("    888  8              83 \n");
-    printf("-----88888______________8----------------------------------------------------\n");
-}
-
-void gengar(float hp, float hpFull, char* name) {
-  printf("\n----------------------------------------------------------------------------\n\t\t\t");
-	printf("%s ", name);
-	HP(hp, hpFull);
-    printf("                                            8%c                /8  \n",92);
-    printf("                                            8 8   /%c /%c /%c   8 8  \n",92,92,92);
-    printf("                                            8  8 O  O  O  O 8  8   \n");
-    printf("                                            8  O           O   8   \n");
-    printf("                                           88 O             O 88   \n");
-    printf("                                          88 O    %c      /   O 88 \n",92);
-    printf("                                        88   O               O  88 \n");
-    printf("                                          88  O    ^^^^^^   O  88  \n");
-    printf("                                            8  O    ^^^^   O  8    \n");
-    printf("                                             8   OOOOOOOOO   8     \n");
-    printf("                                              8    8   8    8      \n");
-    printf("                                               88888   88888       \n\n");
-}
-
-void charizard(float hp, float hpFull, char* name) {
-  printf("\n----------------------------------------------------------------------------\n\t\t\t");
-	printf("%s ", name);
-	HP(hp, hpFull);
-  printf("                                                    /%c   /%c           \n",92,92);
-  printf("                                                    0000000             \n");
-  printf("                                                   0       0            \n");
-  printf("                                              8888 0 O   O 0 8888       \n");
-  printf("                                           888      0     0      888    \n");
-  printf("                                         888         0   0         888  \n");
-  printf("                                        888   888    0. .0    888   888 \n");
-  printf("                                        88  88   88   000   88   88  88 \n");
-  printf("                                        88 8      88       88      8 88 \n");
-  printf("                                         88       88       88       88  \n");
-  printf("                                                 8    888    8          \n");
-  printf("                                                  8888   8888           \n\n");
-}
-
-void zapdos(float hp, float hpFull, char* name) {
-  printf("\n----------------------------------------------------------------------------\n\t\t\t");
-	printf("%s ", name);
-	HP(hp, hpFull);
-  printf("                                      888       |%c        /|       888\n",92);
-  printf("                                        8888  88| %c  88  / |88  8888  \n",92);
-  printf("                                          88888  88%c8  8/88  88888    \n",92);
-  printf("                                           88888            88888      \n");
-  printf("                                         8888       %c  /       8888   \n",92);
-  printf("                                       88888888    %c    /    88888888 \n",92);
-  printf("                                          88888888  %c  /  88888888    \n",92);
-  printf("                                             88888888%c/88888888       \n",92);
-  printf("                                           8888888888888888888888      \n");
-  printf("                                        888888   8888888888   888888   \n");
-  printf("                                       888        88888888        888  \n");
-  printf("                                                   V    V              \n\n");
-}
-
-void mew(float hp, float hpFull, char* name) {
-  printf("\n----------------------------------------------------------------------------\n\t\t\t");
-	printf("%s ", name);
-	HP(hp, hpFull);
-  printf("                                              88             8888               \n");
-  printf("                                             8   888 888888 8    8       88888  \n");
-  printf("                                             8      88    88   88       8     8 \n");
-  printf("                                              8                8       8     8  \n");
-  printf("                                             8                8        8    8   \n");
-  printf("                                             8o        oo      8        8   8   \n");
-  printf("                                             8.o      o.o      8         8  8   \n");
-  printf("                                             8oo      oo   8  8           8  8  \n");
-  printf("                                              8          88     8          8  8 \n");
-  printf("                                               8       88        8          8 8 \n");
-  printf("                                                8888888            8        8 8 \n");
-  printf("                                                 8                  8      8 8  \n");
-  printf("                                                8    8                8   8 8   \n");
-  printf("                                               8   8 8                888 8     \n");
-  printf("                                              8  8   88               8888      \n");
-  printf("                                             888      88       8     88         \n");
-  printf("                                                      888      8    88          \n");
-  printf("                                                     8   8     88     88        \n");
-  printf("                                                  8 8    888888  88      8      \n");
-  printf("                                                 8/    88          88    %c8    \n",92);
-  printf("                                                 8888888             88888      \n\n");
-}
-
-void genders() {
-  printf("      888888888888             8888888             \n");
-  printf("     88           88         888888888888          \n");
-  printf("    88             88      888888888888888         \n");
-  printf("  888             8888    88888888888888888        \n");
-  printf(" 8       8888888888888   8888888888888888888       \n");
-  printf("  8888     88888888888  8     888888888888888      \n");
-  printf("     8  O  8      88    8  O        888888888   8  \n");
-  printf("     8            88    8           88 888888  888 \n");
-  printf("     8__          8      8__       88   88888 8888 \n");
-  printf("      8       888|8       8       88     88888888  \n");
-  printf("       88888888|||8        88888888        8888    \n");
-  printf("         888   8||8         888   88               \n");
-  printf("         888   8||8        8888   888              \n");
-  printf("       88   888888        888   888888             \n");
-  printf("       88     88         888888888888888           \n");
-  printf("         88888                88888                \n\n");
-  printf("        MALE: 1              FEMALE: 2             \n");
-}
-
-void male() {
-  printf("\t      888888888888     \n");
-  printf("\t     88           88   \n");
-  printf("\t    88             88  \n");
-  printf("\t  888             8888 \n");
-  printf("\t 8       8888888888888 \n");
-  printf("\t  8888     88888888888 \n");
-  printf("\t     8  O  8      88   \n");
-  printf("\t     8            88   \n");
-  printf("\t     8__          8    \n");
-  printf("\t      8       888|8    \n");
-  printf("\t       88888888|||8    \n");
-  printf("\t         888   8||8    \n");
-  printf("\t         888   8||8    \n");
-  printf("\t       88   888888     \n");
-  printf("\t       88     88       \n");
-  printf("\t         88888         \n");
-}
-
-void female() {
-  printf("\t        8888888             \n");
-  printf("\t      888888888888          \n");
-  printf("\t    888888888888888         \n");
-  printf("\t   88888888888888888        \n");
-  printf("\t  8888888888888888888       \n");
-  printf("\t 8     888888888888888      \n");
-  printf("\t 8  O        888888888   8  \n");
-  printf("\t 8           88 888888  888 \n");
-  printf("\t  8__       88   88888 8888 \n");
-  printf("\t   8       88     88888888  \n");
-  printf("\t    88888888        8888    \n");
-  printf("\t     888   88               \n");
-  printf("\t    8888   888              \n");
-  printf("\t   888   888888             \n");
-  printf("\t  888888888888888           \n");
-  printf("\t       88888                \n");
-}
-
-void youwon() {
-	printf("      YY      YY   OOO    UU     UU  \n");
-	printf("       YY    YY  OO   OO  UU     UU  \n");
-	printf("        YY  YY  OO     OO UU     UU  \n");
-	printf("         YYYY   OO     OO UU     UU  \n");
-	printf("          YY    OO     OO UU     UU  \n");
-	printf("          YY     OO   OO   UU   UU   \n");
-	printf("          YY       OOO      UUUUU    \n\n");
-
-	printf("  WW                WW   OOO     NNN     NN \n");
-	printf("   WW              WW  OO   OO   NNNN    NN \n");
-	printf("    WW     W      WW  OO     OO  NN NN   NN \n");
-	printf("     WW   WWW    WW   OO     OO  NN  NN  NN \n");
-	printf("      WW WW WW  WW    OO     OO  NN   NN NN \n");
-	printf("       WWWW  WWWW      OO   OO   NN    NNNN \n");
-	printf("        WW    WW         OOO     NN     NNN \n\n\n");
 }
