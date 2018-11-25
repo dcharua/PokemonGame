@@ -112,23 +112,27 @@ void introduction(player_t * player)
         switch (pokemonOption) {
             case 1:
                 strcat(filePokemon, "Pikachu.txt");
-                pikachufront();
+                pikachu();
             break;
 
             case 2:
-                strcat(filePokemon, "Charizard.txt");
+                strcat(filePokemon, "Gengar.txt");
+                gengar();
             break;
 
             case 3:
-                strcat(filePokemon, "Gengar.txt");
+                strcat(filePokemon, "Charizard.txt");
+                charizard();
             break;
 
             case 4:
                 strcat(filePokemon, "Zapdos.txt");
+                zapdos();
             break;
 
             case 5:
                 strcat(filePokemon, "Mew.txt");
+                mew();
             break;
 
             default:
@@ -222,18 +226,25 @@ void loop_Mainmenu(player_t * player)
             break;
 
             case 2:
-                // CHECK
                 backpack(player);
             break;
 
             case 3:
-                // CHECK
-                pikachufront();
+                if (strcmp(player->pokemon->name, "Pikachu") == 0)
+                    pikachu();
+                else if (strcmp(player->pokemon->name, "Gengar") == 0)
+                    gengar();
+                else if (strcmp(player->pokemon->name, "Charizard") == 0)
+                    charizard();
+                else if (strcmp(player->pokemon->name, "Zapdos") == 0)
+                    zapdos();
+                else if (strcmp(player->pokemon->name, "Mew") == 0)
+                    mew();
+
                 printStatus(player);
             break;
 
             case 4:
-                // CHECK
       			playOnline(player);
             break;
 
@@ -262,7 +273,7 @@ void select_stage(player_t * player)
     int stage = 1;
     pokemon_t gengar, charizard, zapdos, mew;
 
-    //Read all the pokemons from the stages
+    // Read all the pokemons from the stages
     char* fileGengar = "DefaultFiles/Gengar.txt";
     read_pokemon(fileGengar, &gengar);
 
@@ -339,17 +350,26 @@ int fight(player_t * player, pokemon_t * opponent, int stage)
     getchar();
     while (fightChoice != 0) {
         if (stage == 1)
-            gengar(opponent->HP, opponentHpFull, opponent->name);
+            gengarFront(opponent->HP, opponentHpFull, opponent->name);
         else if (stage == 2)
-            charizard(opponent->HP, opponentHpFull, opponent->name);
+            charizardFront(opponent->HP, opponentHpFull, opponent->name);
         else if (stage == 3)
-            zapdos(opponent->HP, opponentHpFull, opponent->name);
+            zapdosFront(opponent->HP, opponentHpFull, opponent->name);
         else if (stage == 4)
-            mew(opponent->HP, opponentHpFull, opponent->name);
+            mewFront(opponent->HP, opponentHpFull, opponent->name);
 
-        pikachuBack(player->pokemon->HP, playerHpFull, player->pokemon->name);
+        if (strcmp(player->pokemon->name, "Pikachu") == 0)
+            pikachuBack(player->pokemon->HP, playerHpFull, player->pokemon->name);
+        else if (strcmp(player->pokemon->name, "Gengar") == 0)
+            gengarBack(player->pokemon->HP, playerHpFull, player->pokemon->name);
+        else if (strcmp(player->pokemon->name, "Charizard") == 0)
+            charizardBack(player->pokemon->HP, playerHpFull, player->pokemon->name);
+        else if (strcmp(player->pokemon->name, "Zapdos") == 0)
+            zapdosBack(player->pokemon->HP, playerHpFull, player->pokemon->name);
+        else if (strcmp(player->pokemon->name, "Mew") == 0)
+            mewBack(player->pokemon->HP, playerHpFull, player->pokemon->name);
+
         srand(time(NULL));
-
         scanf("%d", &fightChoice);
         getchar();
         switch(fightChoice) {
@@ -448,7 +468,17 @@ void backpack (player_t * player)
             break;
 
             case 3:
-                pikachufront();
+                if (strcmp(player->pokemon->name, "Pikachu") == 0)
+                    pikachu();
+                else if (strcmp(player->pokemon->name, "Gengar") == 0)
+                    gengar();
+                else if (strcmp(player->pokemon->name, "Charizard") == 0)
+                    charizard();
+                else if (strcmp(player->pokemon->name, "Zapdos") == 0)
+                    zapdos();
+                else if (strcmp(player->pokemon->name, "Mew") == 0)
+                    mew();
+
                 printStatus(player);
             break;
 
@@ -595,8 +625,29 @@ void battleAttack(player_t * player, player_t * opponent, int connection_fd, flo
     char action;
     char buffer[BUFFER_SIZE];
     int again = 1;
-    gengar(opponent->pokemon->HP,  opponent_full_HP, opponent->pokemon->name);
-    pikachuBack(player->pokemon->HP, full_HP, player->pokemon->name);
+
+    if (strcmp(opponent->pokemon->name, "Pikachu") == 0)
+        pikachuFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
+    else if (strcmp(opponent->pokemon->name, "Gengar") == 0)
+        gengarFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
+    else if (strcmp(opponent->pokemon->name, "Charizard") == 0)
+        charizardFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
+    else if (strcmp(opponent->pokemon->name, "Zapdos") == 0)
+        zapdosFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
+    else if (strcmp(opponent->pokemon->name, "Mew") == 0)
+        mewFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
+
+    if (strcmp(player->pokemon->name, "Pikachu") == 0)
+        pikachuBack(player->pokemon->HP, full_HP, player->pokemon->name);
+    else if (strcmp(player->pokemon->name, "Gengar") == 0)
+        gengarBack(player->pokemon->HP, full_HP, player->pokemon->name);
+    else if (strcmp(player->pokemon->name, "Charizard") == 0)
+        charizardBack(player->pokemon->HP, full_HP, player->pokemon->name);
+    else if (strcmp(player->pokemon->name, "Zapdos") == 0)
+        zapdosBack(player->pokemon->HP, full_HP, player->pokemon->name);
+    else if (strcmp(player->pokemon->name, "Mew") == 0)
+        mewBack(player->pokemon->HP, full_HP, player->pokemon->name);
+
     //scanf(" %c", &action);
     action = getchar();
     getchar();
