@@ -1,69 +1,12 @@
-// Custom libraries
-#include "prints.h"
-#include "sockets.h"
+/*
+  PokemonServer.c
+  FinalProyect
+  24/11/18
+  Daniel Charua - Joan Andoni
+  Copyright (c) 2018. All rights reserved.
+*/
 
-// Library for the wait
-#include <unistd.h>
-
-// Sockets libraries
-#include <netdb.h>
-#include <arpa/inet.h>
-
-// Definition of the size of the buffer that we are
-// going to use for the communication
-#define BUFFER_SIZE 1024
-
-// Structure of the pokemon attributes
-typedef struct pokemon {
-    char name[10];
-    float HP;
-    int MP;
-    float attack1;
-    float attack2;
-    int attack_percent;
-} pokemon_t;
-
-// Structure of the player attributes
-typedef struct player {
-    char name[10];
-    int gender;
-    int potions[3];
-    int stages[4];
-    pokemon_t * pokemon;
-} player_t;
-
-// DEFINITION OF THE FUNCTIONS
-
-// Functions that read files
-void read_pokemon(char* filename, pokemon_t* pokemon);
-void read_player(char* filename, player_t* player);
-
-// Initial functions
-void loop_Mainmenu(player_t * player);
-void introduction(player_t * player);
-void GenderName(player_t * player);
-void printStatus(player_t * player);
-void backpack (player_t * player);
-char potions(player_t* player);
-void potionsPictures(player_t * player);
-
-// Fight functions
-void select_stage(player_t * player);
-int fight(player_t * player, pokemon_t * opponent, int stage);
-void attack(player_t * player, pokemon_t * opponent, float attack);
-
-// Functions that write files
-void write_file(char* filename, player_t* player);
-void write_pokemon(char* filename, player_t * player);
-
-// Online game
-void playOnline(player_t * player);
-void battleOnline(player_t * player, int connection_fd);
-void battleDefend(player_t * player, player_t * opponent, int connection_fd, float full_HP, float opponent_full_HP);
-void battleAttack(player_t * player, player_t * opponent, int connection_fd, float full_HP, float opponent_full_HP);
-void checkOpAction(char action, float attack, player_t * player);
-void checkAction(char action, float attack, player_t * opponent);
-
+#include "player.h"
 
 int main(int argC, char *argV[])
 {
@@ -102,6 +45,7 @@ int main(int argC, char *argV[])
     }
 
     loop_Mainmenu(&player);
+    free(player.pokemon);
 
     return 0;
 }
@@ -320,16 +264,16 @@ void select_stage(player_t * player)
 
     //Read all the pokemons from the stages
     char* fileGengar = "DefaultFiles/Gengar.txt";
-	read_pokemon(fileGengar, &gengar);
+    read_pokemon(fileGengar, &gengar);
 
     char* fileCharizard = "DefaultFiles/Charizard.txt";
-	read_pokemon(fileCharizard, &charizard);
+    read_pokemon(fileCharizard, &charizard);
 
     char* fileZapdos = "DefaultFiles/Zapdos.txt";
-	read_pokemon(fileZapdos, &zapdos);
+    read_pokemon(fileZapdos, &zapdos);
 
     char* fileMew = "DefaultFiles/Mew.txt";
-	read_pokemon(fileMew, &mew);
+    read_pokemon(fileMew, &mew);
 
     while (stage != 0) {
         map();
@@ -396,11 +340,11 @@ int fight(player_t * player, pokemon_t * opponent, int stage)
     while (fightChoice != 0) {
         if (stage == 1)
             gengar(opponent->HP, opponentHpFull, opponent->name);
-		else if (stage == 2)
+        else if (stage == 2)
             charizard(opponent->HP, opponentHpFull, opponent->name);
-		else if (stage == 3)
+        else if (stage == 3)
             zapdos(opponent->HP, opponentHpFull, opponent->name);
-		else if (stage == 4)
+        else if (stage == 4)
             mew(opponent->HP, opponentHpFull, opponent->name);
 
         pikachuBack(player->pokemon->HP, playerHpFull, player->pokemon->name);
@@ -438,13 +382,13 @@ int fight(player_t * player, pokemon_t * opponent, int stage)
             printf("\n\t\tYOU LOSE...\n\n");
             player->pokemon->HP = playerHpFull;
             opponent->HP = opponentHpFull;
-			return 0;
-		} else if (opponent->HP <= 0) {
-			printf("\n\t\tYOU WON!!!!!!!!\n\n");
+            return 0;
+        } else if (opponent->HP <= 0) {
+            printf("\n\t\tYOU WON!!!!!!!!\n\n");
             player->pokemon->HP = playerHpFull;
             opponent->HP = opponentHpFull;
-			return 1;
-		}
+            return 1;
+        }
     }
   return 0;
 }
@@ -460,10 +404,10 @@ void attack(player_t * player, pokemon_t * opponent, float attack)
     float opponentAttack2 = opponent->MP * opponent->attack2;
 
     if (probabilityPlayer <= player->pokemon->attack_percent) {
-      opponent->HP -= playerAttack;
-	    printf("\nYou take %.0f of his HP!\n", playerAttack );
+        opponent->HP -= playerAttack;
+  	    printf("\nYou take %.0f of his HP!\n", playerAttack );
 	   } else {
-        printf("\nYour attack has failed\n");
+          printf("\nYour attack has failed\n");
     }
 
     if (probabilityOpponent <= opponent->attack_percent) {

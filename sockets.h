@@ -1,18 +1,11 @@
-//Modify by Daniel Charua - A01017419 - 17/10/18
-
-
 /*
-    Helper methods to use with sockets
-    The basic functions that should be done on any client / server program
-    - Creation of the socket on the server and binding
-    - Printing the local addresses
-    - Creation of a socket on a client
-    - Error validation when sending or receiving messages
-
-    Gilberto Echeverria
-    gilecheverria@yahoo.com
-    31/03/2018
+  PokemonServer.c
+  FinalProyect
+  24/11/18
+  Daniel Charua - Joan Andoni
+  Copyright (c) 2018. All rights reserved.
 */
+
 
 #ifndef SOCKETS_H
 #define SOCKETS_H
