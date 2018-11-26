@@ -11,6 +11,7 @@
 
 ///// MAIN FUNCTION
 int main(int argc, char * argv[]){
+    //declare the variables and seed the randmon factor
     int server_fd;
     player_t player1, player2;
     locks_t data_locks;
@@ -35,8 +36,6 @@ int main(int argc, char * argv[]){
     waitForConnections(server_fd, &player1, &player2, &data_locks);
     // Close the socket
     close(server_fd);
-    printf("in\n");
-    fflush(stdout);
     // Clean the memory used
     closeGame(&player1, &player2, &data_locks);
     // Finish the main thread
@@ -47,9 +46,8 @@ int main(int argc, char * argv[]){
 
 ///// FUNCTION DEFINITIONS
 
-/*
-    Explanation to the user of the parameters required to run the program
-*/
+
+//Explanation to the user of the parameters required to run the program
 void usage(char * program)
 {
     printf("Usage:\n");
@@ -57,6 +55,7 @@ void usage(char * program)
     exit(EXIT_FAILURE);
 }
 
+//Setting up handlers for interruption
 void setupHandlers()
 {
     struct sigaction new_action;
@@ -66,7 +65,7 @@ void setupHandlers()
     sigaction(SIGINT, &new_action, NULL);
 }
 
-// Function to act on CNTL C and send exit message to server
+// Function to act on CNTL C
 void catchInterrupt(int signal)
 {
     interrupted = 1;
@@ -74,10 +73,7 @@ void catchInterrupt(int signal)
 }
 
 
-/*
-    Function to initialize all the information necessary
-    This will allocate memory for the accounts, and for the mutexes
-*/
+//Function to allocate memory and initialize functions
 void initGame(player_t * player1, player_t * player2, locks_t * data_locks)
 {
     // Allocate the arrays in the structures
@@ -91,9 +87,7 @@ void initGame(player_t * player1, player_t * player2, locks_t * data_locks)
     pthread_mutex_init(&data_locks->wait_mutex, NULL);
 }
 
-/*
-    Main loop to wait for incomming connections
-*/
+//Main loop to wait for incomming connections
 void waitForConnections(int server_fd, player_t * player1, player_t * player2, locks_t * data_locks)
 {
     struct sockaddr_in client_address;
@@ -131,12 +125,16 @@ void waitForConnections(int server_fd, player_t * player1, player_t * player2, l
             }
         }
         // Timeout finished without reading anything
-        else if (poll_response == 0) {
-            //printf("No response after %d seconds\n", timeout);
-        } else {
+        else if (poll_response == 0) {}
+        else {
             // There is something ready at the socket
             // Check the type of event detected
             if (test_fds[0].revents & POLLIN) {
+                //if there is a battle already wait for it to end
+                if (player1->online == 1 && player2->online == 1){
+                    printf("Server is full, waiting for battle to end\n");
+                    while(player1->online == 1 && player2->online == 1){}
+                }
                 // ACCEPT
                 // Wait for a client connection
                 client_fd = accept(server_fd, (struct sockaddr *)&client_address, &client_address_size);
@@ -144,21 +142,22 @@ void waitForConnections(int server_fd, player_t * player1, player_t * player2, l
                 if (client_fd == -1) {
                     fatalError("ERROR: accept");
                 }
+                //if 2 players already played restart turn and id
+                if (id == 3) {
+                    id = 1;
+                    turn = 1;
+                }
 
                 // Get the data from the client
                 inet_ntop(client_address.sin_family, &client_address.sin_addr, client_presentation, sizeof client_presentation);
                 printf("Received incomming connection from %s on port %d\n", client_presentation, client_address.sin_port);
-          		// Prepare the structure to send to the thread
+		            // Prepare the structure to send to the thread
                 connection_data = malloc(sizeof (thread_data_t));
                 connection_data->connection_fd = client_fd;
                 connection_data->player_id = id++;
                 connection_data->player1 = player1;
                 connection_data->player2 = player2;
                 connection_data->data_locks = data_locks;
-
-                if (id == 3) {
-                    id = 1;
-                }
 
                 // CREATE A THREAD
                 int result = pthread_create(&new_tid, NULL, attentionThread, (void*)connection_data);
@@ -172,9 +171,10 @@ void waitForConnections(int server_fd, player_t * player1, player_t * player2, l
     }
 }
 
+//Main function to attend players
 void * attentionThread(void * arg)
 {
-    // Receive the data for the bank, mutexes and socket file descriptor
+    // Receive the data for the battle, mutexes and socket file descriptor
     thread_data_t * connection_data = (thread_data_t *) arg;
     // Get the data form the incoming player
     getPlayerData(connection_data);
@@ -182,12 +182,15 @@ void * attentionThread(void * arg)
     while(connection_data->player1->ready == 0 || connection_data->player2->ready == 0){}
     // Go to battle function
     battle(connection_data);
+    // Set players offline
+    offline(connection_data);
     // Free connection memory
     free(connection_data);
     // Close the thread
     pthread_exit(NULL);
 }
 
+//Function to read player data
 void getPlayerData(thread_data_t * connection_data)
 {
     char buffer[BUFFER_SIZE];
@@ -217,6 +220,7 @@ void getPlayerData(thread_data_t * connection_data)
     }
 }
 
+//Main battle function
 void battle(thread_data_t * connection_data)
 {
     char buffer[BUFFER_SIZE];
@@ -241,6 +245,7 @@ void battle(thread_data_t * connection_data)
                 reciveAttack(connection_data);
                 // Send the result of the attack
                 sendData(connection_data);
+                //switch the turn to the second player
                 turn = 2;
                 pthread_mutex_unlock(&connection_data->data_locks->attack_mutex);
 
@@ -285,7 +290,7 @@ void battle(thread_data_t * connection_data)
                 getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
                 printf("Turn %d\n", turn );
                 // Wait until player 1 sends the attack
-                while(turn == 1) { }
+                while(turn == 1) {}
                 printf("Player 2 done waitig now turn 2\n");
                 // Send the data from players 1 attack
                 sendData(connection_data);
@@ -314,18 +319,22 @@ void battle(thread_data_t * connection_data)
     }
 }
 
+//Function to send the attack data to players
 void sendData(thread_data_t * connection_data)
 {
     char buffer[BUFFER_SIZE];
+    //If its player 1 and online
     if(connection_data->player_id==1) {
         if (connection_data->player2->online == 1) {
+            //send the action and the attack points and HP
             printf("sending data player1\n");
             sprintf(buffer, "%c %f %f %f", action, attack_points, connection_data->player1->pokemon->HP, connection_data->player2->pokemon->HP);
             sendString(connection_data->connection_fd, buffer);
-        } else {
+        } else { //If player disconected
             sprintf(buffer, "END");
             sendString(connection_data->connection_fd, buffer);
         }
+    //same protocol for player2
     } else if (connection_data->player_id==2) {
         if (connection_data->player1->online == 1) {
             printf("sending data player 2\n");
@@ -338,39 +347,45 @@ void sendData(thread_data_t * connection_data)
     }
 }
 
+//function to recive the attack by the players
 void reciveAttack(thread_data_t *connection_data)
 {
     char buffer[BUFFER_SIZE];
     getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
     sscanf(buffer, "%c", &action);
     printf("action %c\n", action);
+    //if its and attack send it to attack functions
     if (action == '1' || action == '2') {
         attack(connection_data);
     }
+    //if its a function send ot to potion function
     if (action == '3' || action == '4' || action == '5') {
         potion(connection_data);
     }
 }
 
+// function to calculate the player attack
 void attack(thread_data_t * connection_data)
 {
+    //random number to check if attack was succesfull
     int prob = rand() % 100 + 1;
     if (connection_data->player_id==1) {
-        //pthread_mutex_lock(&connection_data->data_locks->attack_mutex);
+        //calculate points for attack 1
         if (action == '1') {
             attack_points = connection_data->player1->pokemon->MP * connection_data->player1->pokemon->attack1;
         }
+        //calculate points for attack 2
         if (action == '2') {
             attack_points = connection_data->player1->pokemon->MP * connection_data->player1->pokemon->attack2;
         }
-        printf("prob %d, attack %d \n", prob, connection_data->player1->pokemon->attack_percent);
+      //if the random number is lower attack was succesfull, deduct points from rival HP
     	if (prob <= connection_data->player1->pokemon->attack_percent) {
     		connection_data->player2->pokemon->HP -= attack_points;
-    		printf("\nPlayer 1 takes %f of Player 2 HP!\n", attack_points);
-    	} else {
-            printf("\nYour attack has failed\n");
+    	} else { //If attack failed, no attack points
             attack_points = 0.0;
         }
+
+   // Same protocol for player 2
     } else if (connection_data->player_id==2) {
         if (action == '1') {
             attack_points = connection_data->player2->pokemon->MP * connection_data->player2->pokemon->attack1;
@@ -378,27 +393,26 @@ void attack(thread_data_t * connection_data)
         if (action == '2') {
             attack_points = connection_data->player2->pokemon->MP * connection_data->player2->pokemon->attack2;
         }
-        printf("Player 2 prob %d, attack %d \n", prob, connection_data->player1->pokemon->attack_percent);
     	if (prob <= connection_data->player2->pokemon->attack_percent) {
     		connection_data->player1->pokemon->HP -= attack_points;
-            printf("\nPlayer 2 takes %f of Player 1 HP!\n",attack_points);
     	} else {
-            printf("\nYour attack has failed\n");
             attack_points = 0.0;
         }
     }
 }
 
+//Function to handle potions intake
 void potion(thread_data_t * connection_data)
 {
     if(connection_data->player_id==1) {
-        if (action == '3') {
+        if (action == '3') { // potion 1 increments pokemon HP
             connection_data->player1->pokemon->HP += 30;
-        } else if (action == '4') {
+        } else if (action == '4') {// potion 2 increments pokemon MP
             connection_data->player1->pokemon->MP += 5;
-        } else if (action == '5') {
+        } else if (action == '5') {//potion 3 increments the pokemon attack porcentage
             connection_data->player1->pokemon->attack_percent += 5;
         }
+    //Same protocol for player 2
     } else if (connection_data->player_id==2) {
         if (action == '3') {
             connection_data->player2->pokemon->HP += 30;
@@ -410,6 +424,16 @@ void potion(thread_data_t * connection_data)
     }
 }
 
+//function to set players offline
+void offline(thread_data_t * connection_data)
+{
+    connection_data->player1->online = 0;
+    connection_data->player2->online = 0;
+    connection_data->player1->ready = 0;
+    connection_data->player2->ready = 0;
+}
+
+//function to free the memmory and close server
 void closeGame(player_t * player1, player_t * player2, locks_t * data_locks)
 {
     printf("DEBUG: Clearing the memory for the thread\n");

@@ -52,7 +52,6 @@ typedef struct player {
     int potions[3];
     int online;
     int ready;
-    int turn;
     pokemon_t * pokemon;
 } player_t;
 
@@ -76,7 +75,7 @@ typedef struct data_struct {
     locks_t * data_locks;
 } thread_data_t;
 
-//
+// Function declarations
 void usage(char * program);
 void setupHandlers();
 void initGame(player_t * player1, player_t * player2, locks_t * data_locks);
@@ -89,4 +88,5 @@ void reciveAttack(thread_data_t *connection_data);
 void attack(thread_data_t * connection_data);
 void potion(thread_data_t * connection_data);
 void closeGame(player_t * player1, player_t * player2, locks_t * data_locks);
+void offline(thread_data_t * connection_data);
 void catchInterrupt(int signal);

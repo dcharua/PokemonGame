@@ -8,6 +8,7 @@
 
 #include "player.h"
 
+//main function for the game
 int main(int argC, char *argV[])
 {
     player_t player;
@@ -30,8 +31,8 @@ int main(int argC, char *argV[])
         getchar();
         switch(savedProgress) {
             case 1:
-                read_player(filePlayerSaved, &player);
-                read_pokemon(filePokemonSaved, player.pokemon);
+                readPlayer(filePlayerSaved, &player);
+                readPokemon(filePokemonSaved, player.pokemon);
             break;
 
             case 2:
@@ -44,13 +45,14 @@ int main(int argC, char *argV[])
         }
     }
 
-    loop_Mainmenu(&player);
+    mainMenu(&player);
     free(player.pokemon);
 
     return 0;
 }
 
-void read_pokemon(char* filename, pokemon_t* pokemon)
+//function to read pokemon data
+void readPokemon(char* filename, pokemon_t* pokemon)
 {
     FILE* filePtr;
     filePtr = fopen(filename, "r");
@@ -68,9 +70,10 @@ void read_pokemon(char* filename, pokemon_t* pokemon)
     fclose(filePtr);
 }
 
-void read_player(char* filename, player_t* player)
+// function to read player data
+void readPlayer(char* filename, player_t* player)
 {
-    int i = 0;
+  int i = 0;
 	FILE* filePtr;
 	filePtr = fopen(filename, "r");
 
@@ -89,6 +92,7 @@ void read_player(char* filename, player_t* player)
 	fclose(filePtr);
 }
 
+//function for first time players
 void introduction(player_t * player)
 {
     char filePokemon[30] = "DefaultFiles/";
@@ -98,7 +102,7 @@ void introduction(player_t * player)
     printf("¿What is your name?\n\t Name: ");
     scanf("%s", player->name);
     getchar();
-    GenderName(player);
+    genderName(player);
 
     usleep(1000000);
     printf("\nAnd now we are going to give you a new pokémon...\n");
@@ -141,7 +145,7 @@ void introduction(player_t * player)
         }
     }
 
-    read_pokemon(filePokemon, player->pokemon);
+    readPokemon(filePokemon, player->pokemon);
 
     printf("\nGreat choice. That pokémon is awesome\n");
     usleep(2000000);
@@ -161,7 +165,8 @@ void introduction(player_t * player)
     usleep(2000000);
 }
 
-void GenderName(player_t * player)
+//function to select player gender
+void genderName(player_t * player)
 {
     int gender = 0, i = 0;
 
@@ -202,7 +207,8 @@ void GenderName(player_t * player)
         player->stages[i] = 0;
 }
 
-void loop_Mainmenu(player_t * player)
+//Function for the main menu
+void mainMenu(player_t * player)
 {
     int option = 1;
     char* filePlayerSaved = "SavedFiles/player.txt";
@@ -222,7 +228,7 @@ void loop_Mainmenu(player_t * player)
         getchar();
         switch (option) {
             case 1:
-                select_stage(player);
+                selectStage(player);
             break;
 
             case 2:
@@ -245,12 +251,12 @@ void loop_Mainmenu(player_t * player)
             break;
 
             case 4:
-      			playOnline(player);
+      			playOnline(player, filePokemonSaved);
             break;
 
             case 5:
-      		    write_file(filePlayerSaved, player);
-      			write_pokemon(filePokemonSaved, player);
+      		    writeFile(filePlayerSaved, player);
+      			writePokemon(filePokemonSaved, player);
       			printf("\n\n\tCongratulations . . . You have successfully saved the game\n\n");
             break;
 
@@ -268,23 +274,24 @@ void loop_Mainmenu(player_t * player)
     }
 }
 
-void select_stage(player_t * player)
+//function to select an stage for offline battle
+void selectStage(player_t * player)
 {
     int stage = 1;
     pokemon_t gengar, charizard, zapdos, mew;
 
     // Read all the pokemons from the stages
     char* fileGengar = "DefaultFiles/Gengar.txt";
-    read_pokemon(fileGengar, &gengar);
+    readPokemon(fileGengar, &gengar);
 
     char* fileCharizard = "DefaultFiles/Charizard.txt";
-    read_pokemon(fileCharizard, &charizard);
+    readPokemon(fileCharizard, &charizard);
 
     char* fileZapdos = "DefaultFiles/Zapdos.txt";
-    read_pokemon(fileZapdos, &zapdos);
+    readPokemon(fileZapdos, &zapdos);
 
     char* fileMew = "DefaultFiles/Mew.txt";
-    read_pokemon(fileMew, &mew);
+    readPokemon(fileMew, &mew);
 
     while (stage != 0) {
         map();
@@ -340,6 +347,7 @@ void select_stage(player_t * player)
     }
 }
 
+//Function to fight offline
 int fight(player_t * player, pokemon_t * opponent, int stage)
 {
 	int fightChoice = 1;
@@ -397,6 +405,7 @@ int fight(player_t * player, pokemon_t * opponent, int stage)
                 printf("Invalid option, please try again.\n");
             break;
         }
+        usleep(1000000);
 
         if (player->pokemon->HP <= 0) {
             printf("\n\t\tYOU LOSE...\n\n");
@@ -413,6 +422,7 @@ int fight(player_t * player, pokemon_t * opponent, int stage)
   return 0;
 }
 
+//Function to attack offline
 void attack(player_t * player, pokemon_t * opponent, float attack)
 {
     int probabilityPlayer = rand() % 100 + 1;
@@ -429,6 +439,8 @@ void attack(player_t * player, pokemon_t * opponent, float attack)
 	   } else {
           printf("\nYour attack has failed\n");
     }
+    usleep(2000000);
+
 
     if (probabilityOpponent <= opponent->attack_percent) {
         if (opponentAttack == 1) {
@@ -443,6 +455,7 @@ void attack(player_t * player, pokemon_t * opponent, float attack)
     }
 }
 
+//Function to see backpack
 void backpack (player_t * player)
 {
     int option = 1;
@@ -492,6 +505,7 @@ void backpack (player_t * player)
     }
 }
 
+//Function to print player stats
 void printStatus(player_t * player)
 {
     printf("\n\t\t%s stats:\n", player->pokemon->name);
@@ -502,6 +516,7 @@ void printStatus(player_t * player)
     printf("\t\t\tAtt%%:   %d\n", player->pokemon->attack_percent);
 }
 
+//Function to get potion use input form player
 char potions(player_t * player)
 {
     int potion;
@@ -560,37 +575,50 @@ char potions(player_t * player)
     return response;
 }
 
-void playOnline(player_t * player)
+//function to play on a server
+void playOnline(player_t * player, char* filename)
 {
-    //char address[20];
-    //char port[4];
+    char address[20];
+    char port[5];
     char buffer[BUFFER_SIZE];
     int connection_fd = 0;
-
-    // Start the server
+    //get address and port from player and remove \n
+    // printf("Give me the server address\n");
+    // fgets(address, 20, stdin);
+    // strtok(address, "\n\r");
+    // printf("Now the port please\n");
+    // fgets(port, 5, stdin);
+    // strtok(port, "\n\r");
+    // Handshake the server
     connection_fd = connectSocket("127.0.0.1", "8989");
 
+    //id connected
     if (connection_fd ){
-        // Send my data
+        // Send player data
         sprintf(buffer, "%s %s %f %d %f %f %d %d %d %d", player->name, player->pokemon->name, player->pokemon->HP, player->pokemon->MP, player->pokemon->attack1, player->pokemon->attack2, player->pokemon->attack_percent, player->potions[0],  player->potions[1],  player->potions[2]);
-    }
-    sendString(connection_fd, buffer);
-
-    // RECV
-    // Receive the response
-    getMessage(connection_fd, buffer, BUFFER_SIZE);
-
-    if(strncmp(buffer, "WAIT", 4) == 0) {
-        printf("Waiting for another player\n");
-    }
-
-    while ( strncmp(buffer, "PLAY", 4) != 0) {
+        sendString(connection_fd, buffer);
+        // RECV
+        // Receive the response
         getMessage(connection_fd, buffer, BUFFER_SIZE);
-    }
 
-    battleOnline(player, connection_fd);
+        // if WAIT code was recived
+        if(strncmp(buffer, "WAIT", 4) == 0) {
+            printf("Waiting for another player\n");
+        }
+
+        //if wating listen for PLAY code
+        while ( strncmp(buffer, "PLAY", 4) != 0) {
+            getMessage(connection_fd, buffer, BUFFER_SIZE);
+        }
+
+        //when ready to Play go to battle
+        battleOnline(player, connection_fd);
+        //Read pokemon info again to restore health
+        readPokemon(filename, player->pokemon);
+    }
 }
 
+//Function to battle online
 void battleOnline(player_t * player, int connection_fd)
 {
     char buffer[BUFFER_SIZE];
@@ -598,7 +626,7 @@ void battleOnline(player_t * player, int connection_fd)
     player_t opponent;
     opponent.pokemon = malloc(sizeof (pokemon_t));
 
-    // Get opponent data
+    // Get opponent data and send READY CODE
     sprintf(buffer, "OPPONENT");
     sendString(connection_fd, buffer);
     getMessage(connection_fd, buffer, BUFFER_SIZE);
@@ -607,18 +635,19 @@ void battleOnline(player_t * player, int connection_fd)
     sprintf(buffer, "READY");
     sendString(connection_fd, buffer);
 
-    // Battle Loop
+    // Battle Loop until END code is recived
     printf("===== WELCOME TO THE COLISEUM =====\n");
     while(strncmp(buffer, "END", 3) != 0) {
         getMessage(connection_fd, buffer, BUFFER_SIZE);
-        if(strncmp(buffer, "TURN", 4) == 0) {
+        if(strncmp(buffer, "TURN", 4) == 0) { //If its player turn attack
             battleAttack(player, &opponent, connection_fd, full_HP, opponent_full_HP);
-        } else if(strncmp(buffer, "WAIT", 4) == 0) {
+        } else if(strncmp(buffer, "WAIT", 4) == 0) { //otherwise defend
             battleDefend(player, &opponent, connection_fd, full_HP, opponent_full_HP);
         }
     }
 }
 
+//Function to get attack input from player
 void battleAttack(player_t * player, player_t * opponent, int connection_fd, float full_HP, float opponent_full_HP)
 {
     float attack;
@@ -626,33 +655,37 @@ void battleAttack(player_t * player, player_t * opponent, int connection_fd, flo
     char buffer[BUFFER_SIZE];
     int again = 1;
 
-    if (strcmp(opponent->pokemon->name, "Pikachu") == 0)
-        pikachuFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
-    else if (strcmp(opponent->pokemon->name, "Gengar") == 0)
-        gengarFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
-    else if (strcmp(opponent->pokemon->name, "Charizard") == 0)
-        charizardFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
-    else if (strcmp(opponent->pokemon->name, "Zapdos") == 0)
-        zapdosFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
-    else if (strcmp(opponent->pokemon->name, "Mew") == 0)
-        mewFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
-
-    if (strcmp(player->pokemon->name, "Pikachu") == 0)
-        pikachuBack(player->pokemon->HP, full_HP, player->pokemon->name);
-    else if (strcmp(player->pokemon->name, "Gengar") == 0)
-        gengarBack(player->pokemon->HP, full_HP, player->pokemon->name);
-    else if (strcmp(player->pokemon->name, "Charizard") == 0)
-        charizardBack(player->pokemon->HP, full_HP, player->pokemon->name);
-    else if (strcmp(player->pokemon->name, "Zapdos") == 0)
-        zapdosBack(player->pokemon->HP, full_HP, player->pokemon->name);
-    else if (strcmp(player->pokemon->name, "Mew") == 0)
-        mewBack(player->pokemon->HP, full_HP, player->pokemon->name);
-
-    //scanf(" %c", &action);
-    action = getchar();
-    getchar();
+    //again varible is used to handle user input mistake
     while(again) {
+        //print screen depending on pokemon and opponent
+        if (strcmp(opponent->pokemon->name, "Pikachu") == 0)
+            pikachuFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
+        else if (strcmp(opponent->pokemon->name, "Gengar") == 0)
+            gengarFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
+        else if (strcmp(opponent->pokemon->name, "Charizard") == 0)
+            charizardFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
+        else if (strcmp(opponent->pokemon->name, "Zapdos") == 0)
+            zapdosFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
+        else if (strcmp(opponent->pokemon->name, "Mew") == 0)
+            mewFront(opponent->pokemon->HP, opponent_full_HP, opponent->pokemon->name);
+
+        if (strcmp(player->pokemon->name, "Pikachu") == 0)
+            pikachuBack(player->pokemon->HP, full_HP, player->pokemon->name);
+        else if (strcmp(player->pokemon->name, "Gengar") == 0)
+            gengarBack(player->pokemon->HP, full_HP, player->pokemon->name);
+        else if (strcmp(player->pokemon->name, "Charizard") == 0)
+            charizardBack(player->pokemon->HP, full_HP, player->pokemon->name);
+        else if (strcmp(player->pokemon->name, "Zapdos") == 0)
+            zapdosBack(player->pokemon->HP, full_HP, player->pokemon->name);
+        else if (strcmp(player->pokemon->name, "Mew") == 0)
+            mewBack(player->pokemon->HP, full_HP, player->pokemon->name);
+
+        //get attack action
+        action = getchar();
+        getchar();
+
         switch(action) {
+            //if 1 or 2 input is ok
             case '1':
                 again = 0;
             break;
@@ -661,16 +694,18 @@ void battleAttack(player_t * player, player_t * opponent, int connection_fd, flo
                 again = 0;
             break;
 
+            //if 3 check for potion input
             case '3':
                 action = potions(player);
-                printf("ation %c", action);
-                if (action != '0') {
-                    again = 0;
-                } else {
+                //if potion action is not OK repet
+                if (action == '0') {
                     again = 1;
+                } else {
+                    again = 0;
                 }
             break;
 
+            //If user wants to quit send END code
             case '0':
                 sprintf(buffer, "END");
                 sendString(connection_fd, buffer);
@@ -685,48 +720,55 @@ void battleAttack(player_t * player, player_t * opponent, int connection_fd, flo
         }
     }
 
+    //send action to server
     sprintf(buffer, "%c", action);
     sendString(connection_fd, buffer);
 
-    // Recibo el resultado
+    // Recive attack data back from server
     getMessage(connection_fd, buffer, BUFFER_SIZE);
     sscanf(buffer, "%c %f %f %f", &action, &attack, &player->pokemon->HP, &opponent->pokemon->HP);
     checkAction(action, attack, opponent);
 }
 
+//function to check the user input
 void checkAction(char action, float attack, player_t * opponent)
-{
+{   //if action is attack
     if(action == '1' || action == '2') {
+        //if attack points is greater than 0, attack was succesfull
         if (attack > 0) {
             printf("\n=================================\nYou Take %f of his HP\n=================================\n", attack);
-        } else {
+        } else {//otherwise it missed
             printf("\n##################\nYour attack has failed\n##################\n");
         }
-        if (opponent->pokemon->HP <= 0) {
+        if (opponent->pokemon->HP <= 0) {// if Player won the game
             printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE WON\n!!!!!!!!!!!!!!!!!!!!!\n");
         }
     }
 }
 
+//function to handle player defense
 void battleDefend(player_t * player, player_t * opponent, int connection_fd,  float full_HP, float opponent_full_HP)
 {
     float attack;
     char buffer[BUFFER_SIZE];
     char action;
 
-    // Recibo el resultado del ataque del oponente
+    // Sending WAITING code to acknowledge server
     sprintf(buffer, "WAITING");
     sendString(connection_fd, buffer);
     printf("Waiting for player attack\n");
+    //Get attack result
     getMessage(connection_fd, buffer, BUFFER_SIZE);
     sscanf(buffer, "%c %f %f %f", &action, &attack, &player->pokemon->HP, & opponent->pokemon->HP);
+    //check for the outcome
     checkOpAction(action, attack, player);
 }
 
+//Functionto check opponent attack outcome
 void checkOpAction(char action, float attack, player_t * player)
-{
+{   //if it was an attack
     if(action == '1' || action == '2'){
-        if (attack > 0){
+        if (attack > 0){//if attack points is gretter than 0, attack was succefull
             printf("\n""""""""""""""""""""""""""""""\nHe Takes %f of your HP\n""""""""""""""""""""""""""""""\n", attack);
         } else {
             printf("\n!!!!!!!!!!!!!!!!!!!!!\nHis attack has failed\n!!!!!!!!!!!!!!!!!!!!!\n");
@@ -734,14 +776,16 @@ void checkOpAction(char action, float attack, player_t * player)
         if (player->pokemon->HP <= 0) {
             printf("\n!!!!!!!!!!!!!!!!!!!!!\nYOU HAVE LOST\n!!!!!!!!!!!!!!!!!!!!!\n");
         }
+        //if it was a potion
     } else if (action == '3' || action =='4' || action =='5') {
         printf("\n!!!!!!!!!!!!!!!!!!!!!\nYour opponent has taken a potion\n!!!!!!!!!!!!!!!!!!!!!\n");
     }
 }
 
-void write_file(char* filename, player_t* player)
+//Function to write player infor into file
+void writeFile(char* filename, player_t* player)
 {
-    int i;
+  int i;
 	FILE* filePtr;
 	filePtr = fopen(filename, "w");
 
@@ -760,7 +804,8 @@ void write_file(char* filename, player_t* player)
 	fclose(filePtr);
 }
 
-void write_pokemon(char* filename, player_t * player)
+//Function to write pokemon file info
+void writePokemon(char* filename, player_t * player)
 {
     FILE* filePtr;
 	filePtr = fopen(filename, "w");
@@ -778,6 +823,7 @@ void write_pokemon(char* filename, player_t * player)
 	fclose(filePtr);
 }
 
+//Function to print potions
 void potionsPictures(player_t * player)
 {
     printf("\n\n   Potion 1  \n\n");
