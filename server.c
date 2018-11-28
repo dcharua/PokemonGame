@@ -68,7 +68,9 @@ void setupHandlers()
 // Function to act on CNTL C
 void catchInterrupt(int signal)
 {
+    printf("Closing server....\n");
     interrupted = 1;
+    usleep(1000000);
     exit(1);
 }
 
@@ -199,7 +201,7 @@ void getPlayerData(thread_data_t * connection_data)
     if (connection_data->player1->online == 0) {
         // Get data from the player, set player online and send WAIT signal
         sscanf(buffer, "%s %s %f %d %f %f %d %d %d %d", connection_data->player1->name, connection_data->player1->pokemon->name, &connection_data->player1->pokemon->HP, &connection_data->player1->pokemon->MP, &connection_data->player1->pokemon->attack1, &connection_data->player1->pokemon->attack2, &connection_data->player1->pokemon->attack_percent, &connection_data->player1->potions[0], &connection_data->player1->potions[1], &connection_data->player1->potions[2]);
-        printf("Player data: %s %s %f %d %f %f %d %d %d %d\n", connection_data->player1->name, connection_data->player1->pokemon->name, connection_data->player1->pokemon->HP, connection_data->player1->pokemon->MP, connection_data->player1->pokemon->attack1, connection_data->player1->pokemon->attack2, connection_data->player1->pokemon->attack_percent, connection_data->player1->potions[0], connection_data->player1->potions[1], connection_data->player1->potions[2]);
+        printf("Player data 1: %s %s %f %d %f %f %d %d %d %d\n", connection_data->player1->name, connection_data->player1->pokemon->name, connection_data->player1->pokemon->HP, connection_data->player1->pokemon->MP, connection_data->player1->pokemon->attack1, connection_data->player1->pokemon->attack2, connection_data->player1->pokemon->attack_percent, connection_data->player1->potions[0], connection_data->player1->potions[1], connection_data->player1->potions[2]);
         connection_data->player1->online = 1;
         sprintf(buffer, "WAIT");
         sendString(connection_data->connection_fd, buffer);
@@ -235,7 +237,6 @@ void battle(thread_data_t * connection_data)
         getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
         if (strncmp(buffer, "READY", 5) == 0) {
             // Battle until a player HP is 0 or less
-            printf("HP1:%f HP2:%f\n", connection_data->player1->pokemon->HP, connection_data->player2->pokemon->HP);
             while (connection_data->player1->pokemon->HP > 0 && connection_data->player2->pokemon->HP > 0 && !interrupted) {
                 pthread_mutex_lock(&connection_data->data_locks->attack_mutex);
                 // First is player's 1 turn send TURN signal
@@ -256,9 +257,7 @@ void battle(thread_data_t * connection_data)
                     sendString(connection_data->connection_fd, buffer);
                     //wait until player 2 send the attack
                     getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
-                    printf("turn %d\n", turn );
                     while(turn == 2) { }
-                    printf("player 1 done waitig now turn 1\n");
                     // Send the result of player's 2 attack to player 1
                     sendData(connection_data);
                     pthread_mutex_unlock(&connection_data->data_locks->wait_mutex);
@@ -288,10 +287,8 @@ void battle(thread_data_t * connection_data)
                 sprintf(buffer, "WAIT");
                 sendString(connection_data->connection_fd, buffer);
                 getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
-                printf("Turn %d\n", turn );
                 // Wait until player 1 sends the attack
                 while(turn == 1) {}
-                printf("Player 2 done waitig now turn 2\n");
                 // Send the data from players 1 attack
                 sendData(connection_data);
 
@@ -327,7 +324,6 @@ void sendData(thread_data_t * connection_data)
     if(connection_data->player_id==1) {
         if (connection_data->player2->online == 1) {
             //send the action and the attack points and HP
-            printf("sending data player1\n");
             sprintf(buffer, "%c %f %f %f", action, attack_points, connection_data->player1->pokemon->HP, connection_data->player2->pokemon->HP);
             sendString(connection_data->connection_fd, buffer);
         } else { //If player disconected
@@ -337,7 +333,6 @@ void sendData(thread_data_t * connection_data)
     //same protocol for player2
     } else if (connection_data->player_id==2) {
         if (connection_data->player1->online == 1) {
-            printf("sending data player 2\n");
             sprintf(buffer, "%c %f %f %f", action, attack_points, connection_data->player2->pokemon->HP, connection_data->player1->pokemon->HP);
             sendString(connection_data->connection_fd, buffer);
         } else {
@@ -353,7 +348,6 @@ void reciveAttack(thread_data_t *connection_data)
     char buffer[BUFFER_SIZE];
     getMessage(connection_data->connection_fd, buffer, BUFFER_SIZE);
     sscanf(buffer, "%c", &action);
-    printf("action %c\n", action);
     //if its and attack send it to attack functions
     if (action == '1' || action == '2') {
         attack(connection_data);

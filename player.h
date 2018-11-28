@@ -12,6 +12,8 @@
 
 // Library for the wait
 #include <unistd.h>
+#include <errno.h>
+#include <signal.h>
 
 // Sockets libraries
 #include <netdb.h>
@@ -40,6 +42,10 @@ typedef struct player {
     pokemon_t * pokemon;
 } player_t;
 
+//golabl variables for catch interrupt
+int online = 0;
+int interrupted = 0;
+
 // DEFINITION OF THE FUNCTIONS
 
 // Functions that read files
@@ -48,6 +54,8 @@ void readPlayer(char* filename, player_t* player);
 
 // Initial functions
 void mainMenu(player_t * player);
+void setupHandlers();
+void catchInterrupt(int signal);
 void introduction(player_t * player);
 void genderName(player_t * player);
 void printStatus(player_t * player);

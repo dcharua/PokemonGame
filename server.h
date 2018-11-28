@@ -78,6 +78,7 @@ typedef struct data_struct {
 // Function declarations
 void usage(char * program);
 void setupHandlers();
+void catchInterrupt(int signal);
 void initGame(player_t * player1, player_t * player2, locks_t * data_locks);
 void waitForConnections(int server_fd, player_t * player1, player_t * player2, locks_t * data_locks);
 void * attentionThread(void * arg);
@@ -89,4 +90,3 @@ void attack(thread_data_t * connection_data);
 void potion(thread_data_t * connection_data);
 void closeGame(player_t * player1, player_t * player2, locks_t * data_locks);
 void offline(thread_data_t * connection_data);
-void catchInterrupt(int signal);
