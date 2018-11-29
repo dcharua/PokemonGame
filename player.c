@@ -252,7 +252,7 @@ void mainMenu(player_t * player)
     char* filePlayerSaved = "SavedFiles/player.txt";
     char* filePokemonSaved = "SavedFiles/pokemon.txt";
 
-    while (option != 0 || !interrupted) {
+    while (option != 0 && !interrupted) {
         printf("\n-------------------------------------------------------------------------------");
         printf("\n  Welcome to the main menu %s, please choose one of the options below.\n\n", player->name);
         printf("\t1. Go to the Map and main story\n");
