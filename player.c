@@ -146,7 +146,7 @@ void introduction(player_t * player)
 
     // This loop will let you chose one of the 5 pokemons that we have as initial
     while (pokemonOption == 0) {
-        printf("\n1.-Pikachu | 2.-Charizard | 3.-Gengar | 4.-Zapdos | 5.-Mew \n");
+        printf("\n1.-Pikachu | 2.-Gengar | 3.-Charizard | 4.-Zapdos | 5.-Mew \n");
         printf("\tOption: ");
         scanf("%d", &pokemonOption);
         getchar();
@@ -189,8 +189,7 @@ void introduction(player_t * player)
     usleep(2000000);
     printf("\nHere you have a map that you have to complete to become a Pokemon Master\n");
     usleep(2000000);
-    printf("\nIn each stage there is a battle of differents pokemon and you have to fight against them
-    \n");
+    printf("\nIn each stage there is a battle of differents pokemon and you have to fight against them\n");
     usleep(2000000);
     printf("\nYou won't be able to  pass to another level if the previous one hasn't been complete yet\n");
     usleep(2000000);
@@ -210,7 +209,7 @@ void genderName(player_t * player)
     int gender = 0, i = 0;
 
     while ((gender != 1) && (gender != 2)) {
-        printf("\n Well %s first things first, what gender do you want to be?\n\n", player->name);
+        printf("\n Well %s first things first, which gender do you want to be?\n\n", player->name);
         usleep(1000000);
         genders();
         printf("\nChose an option : ");
