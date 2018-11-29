@@ -636,7 +636,7 @@ void playOnline(player_t * player, char* filename)
     strtok(port, "\n\r");
     getchar();
     // Handshake the server
-    connection_fd = connectSocket("127.0.0.1", "8989");
+    connection_fd = connectSocket(address, port);
 
 
     //id connected
