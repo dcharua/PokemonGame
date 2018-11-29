@@ -11,6 +11,7 @@
 //main function for the game
 int main(int argC, char *argV[])
 {
+
     srand(time(NULL));
     player_t player;
     int savedProgress = 0;
@@ -28,17 +29,20 @@ int main(int argC, char *argV[])
     printf("*****************************************************************\n\n");
     printf("  Do you have a saved progress? { Yes: 1 | No: 2 }\n");
 
+    //This loop will let you to check if you have a progress if not you have to start a new game
     while ( (savedProgress != 1)&&(savedProgress != 2)) {
         printf("\tOption: ");
         scanf("%d", &savedProgress);
         getchar();
         switch(savedProgress) {
             case 1:
+                // Load the progress
                 readPlayer(filePlayerSaved, &player);
                 readPokemon(filePokemonSaved, player.pokemon);
             break;
 
             case 2:
+                //Start a new game with the introduction etc...
                 introduction(&player);
             break;
 
@@ -48,7 +52,10 @@ int main(int argC, char *argV[])
         }
     }
 
+    //Go to the main manu with all the data ready to use
     mainMenu(&player);
+
+    //Free the malloc that we did for the pokemon of the player
     free(player.pokemon);
 
     return 0;
@@ -79,7 +86,7 @@ void catchInterrupt(int signal)
     exit(1);
 }
 
-//function to read pokemon data
+// Function to read pokemon data
 void readPokemon(char* filename, pokemon_t* pokemon)
 {
     FILE* filePtr;
@@ -98,7 +105,7 @@ void readPokemon(char* filename, pokemon_t* pokemon)
     fclose(filePtr);
 }
 
-// function to read player data
+// Function to read player data
 void readPlayer(char* filename, player_t* player)
 {
   int i = 0;
@@ -120,7 +127,7 @@ void readPlayer(char* filename, player_t* player)
 	fclose(filePtr);
 }
 
-//function for first time players game intro and pokemon select
+// Function for first time players game intro and pokemon select
 void introduction(player_t * player)
 {
     char filePokemon[30] = "DefaultFiles/";
@@ -136,11 +143,14 @@ void introduction(player_t * player)
     printf("\nAnd now we are going to give you a new pokémon...\n");
     usleep(1000000);
     printf("\nYou have different options pick wich one you prefer\n");
+
+    // This loop will let you chose one of the 5 pokemons that we have as initial
     while (pokemonOption == 0) {
         printf("\n1.-Pikachu | 2.-Charizard | 3.-Gengar | 4.-Zapdos | 5.-Mew \n");
         printf("\tOption: ");
         scanf("%d", &pokemonOption);
         getchar();
+        // Each option will read a default pokemon and save it in to the player
         switch (pokemonOption) {
             case 1:
                 strcat(filePokemon, "Pikachu.txt");
@@ -179,7 +189,8 @@ void introduction(player_t * player)
     usleep(2000000);
     printf("\nHere you have a map that you have to complete to become a Pokemon Master\n");
     usleep(2000000);
-    printf("\nIn each stage there is a battle of differents pokemon and you have to fight to get more potions\n");
+    printf("\nIn each stage there is a battle of differents pokemon and you have to fight against them
+    \n");
     usleep(2000000);
     printf("\nYou won't be able to  pass to another level if the previous one hasn't been complete yet\n");
     usleep(2000000);
@@ -193,7 +204,7 @@ void introduction(player_t * player)
     usleep(2000000);
 }
 
-//function to select player gender for first time players
+//function to select player gender potions and state of stages for first time players
 void genderName(player_t * player)
 {
     int gender = 0, i = 0;
@@ -255,15 +266,18 @@ void mainMenu(player_t * player)
         scanf("%d", &option);
         getchar();
         switch (option) {
+            //Go to the main story
             case 1:
                 selectStage(player);
             break;
 
             case 2:
+            //Go to backpack
                 backpack(player);
             break;
 
             case 3:
+            // Check your pokemons stats
                 if (strcmp(player->pokemon->name, "Pikachu") == 0)
                     pikachu();
                 else if (strcmp(player->pokemon->name, "Gengar") == 0)
@@ -278,16 +292,19 @@ void mainMenu(player_t * player)
                 printStatus(player);
             break;
 
+            // Make a fight online with other user
             case 4:
       			    playOnline(player, filePokemonSaved);
             break;
 
+            //Save the current game
             case 5:
-      		      writeFile(filePlayerSaved, player);
+                writeFile(filePlayerSaved, player);
                 writePokemon(filePokemonSaved, player);
-			          printf("\n\n\tCongratulations . . . You have successfully saved the game\n\n");
+                printf("\n\n\tCongratulations . . . You have successfully saved the game\n\n");
             break;
 
+            // Here you will go out but first they are going to ask you if you already saved the game
             case 0:
                 printf("\nHave you already saved your game? { Yes: 0 | No: 1 }\n");
                 printf("\tOption: ");
@@ -308,7 +325,7 @@ void selectStage(player_t * player)
     int stage = 1;
     pokemon_t gengar, charizard, zapdos, mew;
 
-    // Read all the pokemons from the stages
+    // Read all the pokemons to use in each stage of the main story
     char* fileGengar = "DefaultFiles/Gengar.txt";
     readPokemon(fileGengar, &gengar);
 
